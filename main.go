@@ -143,7 +143,7 @@ ClustersMenu:
 			fmt.Printf(p.Error("\U00002717 Cluster menu failed!\n"))
 		}
 
-		// InstancesMenu:
+	InstancesMenu:
 		if result == "Instances" {
 			// Get cluster instances
 			instances, err := ecs.GetClusterInstances(cluster)
@@ -191,11 +191,13 @@ ClustersMenu:
 					Searcher:  searcher,
 				}
 
-				_, result, err = prompt.Run()
+				i, result, err := prompt.Run()
 
 				if err != nil {
 					fmt.Printf(p.Error("\U00002717 Prompt failed %v\n"), err)
 				}
+
+				inst := instancesInfo[i]
 
 				prompt = promptui.Select{
 					Label: "[ Select action ]",
@@ -216,6 +218,48 @@ ClustersMenu:
 				if err != nil {
 					fmt.Printf(p.Error("\U00002717 Prompt failed %v\n"), err)
 					os.Exit(0)
+				}
+
+				// Update ECS Agent
+				if result == "Update ECS Agent" {
+					startTime := time.Now()
+
+					fmt.Printf(p.Info("\U0001F5A5  Update ECS Agent on %s (%s): "), inst.Name, inst.Ec2InstanceID)
+					r, e := ecs.UpdateContainerAgent(cluster, inst.Name)
+					if e != nil {
+						fmt.Printf(p.Error("\U00002717 Couldn't update container agent: %v"), err)
+					}
+					fmt.Println(p.Yellow(r))
+
+					// Calculate elapsed time and print it
+					elapsedTime := time.Since(startTime)
+					duration := durafmt.ParseShort(elapsedTime)
+					fmt.Printf("\n_____________________________________________\n\n")
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("_____________________________________________\n\n")
+					goto InstancesMenu
+
+				}
+
+				// Activate instance
+				if result == "Activate instance" {
+					startTime := time.Now()
+
+					fmt.Printf(p.Info("\U0001F5A5  Activate instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
+					r, e := ecs.ActivateContainerInstance(cluster, inst.ARN)
+					if e != nil {
+						fmt.Printf(p.Error("\U00002717 Couldn't activate instance: %v"), err)
+					}
+					fmt.Println(p.Yellow(r))
+
+					// Calculate elapsed time and print it
+					elapsedTime := time.Since(startTime)
+					duration := durafmt.ParseShort(elapsedTime)
+					fmt.Printf("\n_____________________________________________\n\n")
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("_____________________________________________\n\n")
+					goto InstancesMenu
+
 				}
 
 				if result == "Quit" {
