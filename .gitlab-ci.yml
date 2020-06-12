@@ -1,6 +1,6 @@
 ### Global variables
 variables:
-  SERIAL: 2020061201
+  SERIAL: 2020061202
   GO_VERSION: '1.14'
   GOOS: 'darwin'
   GOARCH: 'amd64'
