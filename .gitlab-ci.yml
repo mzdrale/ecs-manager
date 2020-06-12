@@ -1,0 +1,80 @@
+### Global variables
+variables:
+  SERIAL: 2020061201
+  GO_VERSION: '1.14'
+  GOOS: 'darwin'
+  GOARCH: 'amd64'
+
+### List of stages
+stages:
+  - go_build
+  - release_go_binary
+
+### Shared content
+.shared:
+  tags:
+    - gitlab-org
+
+### Global cache
+# Pass small bits of information between jobs
+cache:
+  key: ${CI_COMMIT_TAG}
+  paths:
+    - project_cache/
+
+### Jobs
+# Build Job
+go_build:
+  image: golang:${GO_VERSION}
+  stage: go_build
+  extends: .shared
+  script:
+    # Environment variables
+    - export REVISION="${CI_COMMIT_TAG}"
+    # Save job id
+    - mkdir project_cache
+    - echo ${CI_JOB_ID} > project_cache/previous_job_id.txt
+    # Build Go binary and create an artifact
+    - mkdir target
+    - make build
+    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-${GOOS}-${GOARCH}.tar.gz ${CI_PROJECT_NAME}
+  artifacts:
+    # The value of expire_in is an elapsed time in seconds, unless a unit is provided
+    # https://docs.gitlab.com/ee/ci/yaml/README.html#artifactsexpire_in
+    #expire_in: 1h
+    paths:
+      - target/*.tar.gz
+  only:
+    refs:
+      - tags
+
+# Release Job
+release_go_binary:
+  image: golang:${GO_VERSION}
+  stage: release_go_binary
+  extends: .shared
+  script:
+    # Environment variables
+    - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
+    # Create a release
+    - |
+      curl -sSL -X POST \
+        -H 'Content-Type: application/json' \
+        -H "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
+        -d '{
+          "name": "'"${CI_COMMIT_TAG}"'",
+          "tag_name": "'"${CI_COMMIT_TAG}"'",
+          "description": "'"New ${CI_PROJECT_NAME} release"'",
+          "assets": {
+            "links": [
+              {
+                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'",
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${PREVIOUS_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'"
+              }
+            ]
+          }
+        }' \
+      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases" > /dev/null
+  only:
+    refs:
+      - tags
