@@ -40,7 +40,7 @@ func init() {
 
 	// Get process id
 	pid = os.Getpid()
-	log.Printf("Running %s v%s (PID: %d)", binName, version, pid)
+	log.Printf("Running %v rev %v (PID: %d)", binName, version, pid)
 
 	// Get user's home dir
 	home, err := os.UserHomeDir()
