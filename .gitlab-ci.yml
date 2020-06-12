@@ -74,7 +74,7 @@ release_go_binary:
             ]
           }
         }' \
-      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases" > /dev/null
+      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases"
   only:
     refs:
       - tags
