@@ -1,7 +1,7 @@
-BINARY := ecs-manager-ng
+BINARY := ecs-manager
 VERSION := $(shell cat VERSION)
 REVISION := $(shell git rev-parse --short HEAD)
-CONFIG_DIR := ~/.config/ecs-manager-ng
+CONFIG_DIR := ~/.config/ecs-manager
 CONFIG := config.toml
 
 .PHONY: build
