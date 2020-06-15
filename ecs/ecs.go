@@ -240,6 +240,25 @@ func GetClusterInstancesInfo(cluster string, instances []string) ([]Instance, er
 	return instancesInfo, err
 }
 
+// StopTask - stop task
+func StopTask(cluster string, task string) (bool, error) {
+	svc := ecs.New(session.New())
+
+	input := &ecs.StopTaskInput{
+		Cluster: aws.String(cluster),
+		Task:    aws.String(task),
+		Reason:  aws.String("Stopped by update script"),
+	}
+
+	_, err := svc.StopTask(input)
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // UpdateContainerAgent - updates ECS container agent
 func UpdateContainerAgent(cluster string, instance string) (string, error) {
 	svc := ecs.New(session.New())
