@@ -89,7 +89,7 @@ release_darwin_go_binary:
   script:
     # Environment variables
     - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
-    - export GOOS=linux
+    - export GOOS=darwin
     - export GOARCH=amd64
     # Create a release
     - |
