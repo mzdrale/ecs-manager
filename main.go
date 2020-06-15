@@ -33,6 +33,11 @@ var (
 	err           error
 )
 
+// Config vatiables
+var (
+	cTestClusters []string
+)
+
 func init() {
 
 	// Use config from ~/.aws
@@ -50,7 +55,7 @@ func init() {
 	}
 
 	// Configuration dir
-	cfgDir = filepath.Join(home, ".config/ecs-manager-ng")
+	cfgDir = filepath.Join(home, ".config/ecs-manager")
 
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
@@ -71,6 +76,9 @@ func init() {
 		fmt.Printf("Usage: \n")
 		flag.PrintDefaults()
 	}
+
+	// Get arguments
+	cTestClusters = viper.GetStringSlice("ecs.test_clusters")
 
 	flag.Parse()
 
@@ -120,6 +128,20 @@ ClustersMenu:
 
 		if err != nil {
 			fmt.Printf(p.Error("\U00002717 Cluster selection failed!\n"))
+		}
+
+		testCluster := false
+
+		if common.ElementInSlice(cluster, cTestClusters) {
+			testCluster = true
+			fmt.Printf("\n==============================================================\n")
+			fmt.Printf(p.Red("                          TEST CLUSTER \n"))
+			fmt.Printf("______________________________________________________________\n\n")
+			fmt.Printf(p.Red(" This cluster is listed in test_clusters list in config file. \n"))
+			fmt.Printf(p.Red(" It means if you choose to drain instances in this cluster, \n"))
+			fmt.Printf(p.Red(" this tool will not wait for drain to finish, but force stop \n"))
+			fmt.Printf(p.Red(" tasks one by one.\n"))
+			fmt.Printf("______________________________________________________________\n\n")
 		}
 
 		// Select cluster action
@@ -395,7 +417,8 @@ ClustersMenu:
 
 			// Get list of excluded instances
 			excludeFilename := filepath.Join(cfgDir, fmt.Sprintf("%s-instances.exclude", strings.Split(cluster, "/")[1]))
-			excludedInstances, err := common.ReadFileLines(excludeFilename)
+			excludedInstances, err := common.ReadExcludedInstancesList(excludeFilename)
+			fmt.Printf("Excluded: %#v\n", excludedInstances)
 
 			if err != nil {
 				fmt.Printf(p.Error("\U00002717 Couldn't get list of excluded instances from %s: %v\n"), excludeFilename, err)
@@ -460,13 +483,17 @@ ClustersMenu:
 							loop = false
 						}
 
+						if testCluster && runningTasksCount > 0 {
+							_, err = ecs.StopTask(cluster, tasks[0])
+						}
+
 						if loop {
 							time.Sleep(sleepTime)
 						}
 					}
 					fmt.Println()
 
-					fmt.Printf(p.Info("   \U0000276F Terminate instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
+					fmt.Printf(p.Info("   \U0000276F Terminate instance: "))
 
 					// Terminate instance
 					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID)

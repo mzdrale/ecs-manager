@@ -25,8 +25,8 @@ func FileExists(path string) bool {
 	return !info.IsDir()
 }
 
-// ReadFileLines - reads files line by line and returns array
-func ReadFileLines(path string) ([]string, error) {
+// ReadExcludedInstancesList - reads excluded instances list from file
+func ReadExcludedInstancesList(path string) ([]string, error) {
 	var lines []string
 	if FileExists(path) {
 		file, err := os.Open(path)
