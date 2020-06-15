@@ -6,8 +6,8 @@ variables:
 ### List of stages
 stages:
   - go_build
-  - release_go_linux_binary
-  - release_go_darwin_binary
+  - release_linux_go_binary
+  - release_darwin_go_binary
 
 ### Shared content
 .shared:
@@ -49,7 +49,7 @@ go_build:
       - tags
 
 # Release Linux binary Job
-release_go_linux_binary:
+release_linux_go_binary:
   image: golang:${GO_VERSION}
   stage: release_go_binary
   extends: .shared
@@ -82,7 +82,7 @@ release_go_linux_binary:
       - tags
 
 # Release Darwin (macOS) binary Job
-release_go_darwin_binary:
+release_darwin_go_binary:
   image: golang:${GO_VERSION}
   stage: release_go_binary
   extends: .shared
