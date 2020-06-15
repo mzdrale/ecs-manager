@@ -48,7 +48,7 @@ go_build_darwin:
       - tags
 
 # Build Job - Linux
-go_build_darwin:
+go_build_linux:
   image: golang:${GO_VERSION}
   stage: go_build
   extends: .shared
