@@ -2,6 +2,7 @@
 variables:
   SERIAL: 2020061501
   GO_VERSION: '1.14'
+  GOARCH: 'amd64'
 
 ### List of stages
 stages:
@@ -21,33 +22,52 @@ cache:
     - project_cache/
 
 ### Jobs
-# Build Job
-go_build:
+# Build Job - Darwin (macOS)
+go_build_darwin:
   image: golang:${GO_VERSION}
   stage: go_build
   extends: .shared
   script:
     # Environment variables
     - export REVISION="${CI_COMMIT_TAG}"
+    - export GOOS="darwin"
+    # - export GOARCH="amd64"
     # Save job id
     - test -d project_cache || mkdir project_cache
     - echo ${CI_JOB_ID} > project_cache/previous_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
-    - make build
-    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-darwin-amd64.tar.gz ${CI_PROJECT_NAME}-darwin-amd64
-    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-linux-amd64.tar.gz ${CI_PROJECT_NAME}-linux-amd64
+    - make build:${GOOS}
+    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-${GOOS}-${GOARCH}.tar.gz ${CI_PROJECT_NAME}-${GOOS}-${GOARCH}
   artifacts:
-    # The value of expire_in is an elapsed time in seconds, unless a unit is provided
-    # https://docs.gitlab.com/ee/ci/yaml/README.html#artifactsexpire_in
-    #expire_in: 1h
-    name: ${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64
+    name: ${CI_PROJECT_NAME}
     paths:
-      - target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz
+      - target/*.tar.gz
+  only:
+    refs:
+      - tags
+
+# Build Job - Linux
+go_build_darwin:
+  image: golang:${GO_VERSION}
+  stage: go_build
+  extends: .shared
+  script:
+    # Environment variables
+    - export REVISION="${CI_COMMIT_TAG}"
+    - export GOOS="linux"
+    # - export GOARCH="amd64"
+    # Save job id
+    - test -d project_cache || mkdir project_cache
+    - echo ${CI_JOB_ID} > project_cache/previous_job_id.txt
+    # Build Go binary and create an artifact
+    - mkdir target
+    - make build:${GOOS}
+    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-${GOOS}-${GOARCH}.tar.gz ${CI_PROJECT_NAME}-${GOOS}-${GOARCH}
   artifacts:
-    name: ${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64
+    name: ${CI_PROJECT_NAME}
     paths:
-      - target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64.tar.gz
+      - target/*.tar.gz
   only:
     refs:
       - tags
@@ -61,7 +81,7 @@ release_linux_go_binary:
     # Environment variables
     - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
     - export GOOS=linux
-    - export GOARCH=amd64
+    # - export GOARCH=amd64
     # Create a release
     - |
       curl -sSL -X POST \
@@ -94,7 +114,7 @@ release_darwin_go_binary:
     # Environment variables
     - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
     - export GOOS=darwin
-    - export GOARCH=amd64
+    # - export GOARCH=amd64
     # Create a release
     - |
       curl -sSL -X POST \

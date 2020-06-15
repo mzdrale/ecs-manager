@@ -1,9 +1,12 @@
 BINARY := ecs-manager
 REVISION := $(shell git rev-parse --short HEAD)
 
-.PHONY: build
-build:
+.PHONY: build\:darwin
+build\:darwin:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY}-darwin-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${REVISION}"
+
+.PHONY: build\:linux
+build\:linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BINARY}-linux-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${REVISION}"
 
 .PHONY: run
