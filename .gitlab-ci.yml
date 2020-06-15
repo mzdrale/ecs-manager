@@ -6,8 +6,7 @@ variables:
 ### List of stages
 stages:
   - go_build
-  - release_linux_go_binary
-  - release_darwin_go_binary
+  - release_go_binary
 
 ### Shared content
 .shared:
