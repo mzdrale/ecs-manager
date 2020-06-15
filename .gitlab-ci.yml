@@ -6,7 +6,8 @@ variables:
 ### List of stages
 stages:
   - go_build
-  - release_go_binary
+  - release_go_linux_binary
+  - release_go_darwin_binary
 
 ### Shared content
 .shared:
@@ -47,14 +48,49 @@ go_build:
     refs:
       - tags
 
-# Release Job
-release_go_binary:
+# Release Linux binary Job
+release_go_linux_binary:
   image: golang:${GO_VERSION}
   stage: release_go_binary
   extends: .shared
   script:
     # Environment variables
     - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
+    - export GOOS=linux
+    - export GOARCH=amd64
+    # Create a release
+    - |
+      curl -sSL -X POST \
+        -H 'Content-Type: application/json' \
+        -H "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
+        -d '{
+          "name": "'"${CI_COMMIT_TAG}"'",
+          "tag_name": "'"${CI_COMMIT_TAG}"'",
+          "description": "'"New ${CI_PROJECT_NAME} release"'",
+          "assets": {
+            "links": [
+              {
+                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'",
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${PREVIOUS_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'"
+              }
+            ]
+          }
+        }' \
+      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases" > /dev/null
+  only:
+    refs:
+      - tags
+
+# Release Darwin (macOS) binary Job
+release_go_darwin_binary:
+  image: golang:${GO_VERSION}
+  stage: release_go_binary
+  extends: .shared
+  script:
+    # Environment variables
+    - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
+    - export GOOS=linux
+    - export GOARCH=amd64
     # Create a release
     - |
       curl -sSL -X POST \
