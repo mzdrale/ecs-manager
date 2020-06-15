@@ -42,8 +42,8 @@ go_build:
     # https://docs.gitlab.com/ee/ci/yaml/README.html#artifactsexpire_in
     #expire_in: 1h
     paths:
-      - target/${CI_PROJECT_NAME}-${REVISION}-darwin-amd64.tar.gz
-      - target/${CI_PROJECT_NAME}-${REVISION}-linux-amd64.tar.gz
+      - target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64.tar.gz
+      - target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz
   only:
     refs:
       - tags
