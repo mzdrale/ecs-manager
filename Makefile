@@ -1,4 +1,4 @@
-BINARY := ecs-manager-ng
+BINARY := ecs-manager
 REVISION := $(shell git rev-parse --short HEAD)
 
 .PHONY: build
