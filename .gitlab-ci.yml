@@ -35,7 +35,7 @@ go_build:
     # Build Go binary and create an artifact
     - mkdir target
     - make build
-    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-darvin-amd64.tar.gz ${CI_PROJECT_NAME}-darvin-amd64
+    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-darwin-amd64.tar.gz ${CI_PROJECT_NAME}-darwin-amd64
     - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-linux-amd64.tar.gz ${CI_PROJECT_NAME}-linux-amd64
   artifacts:
     # The value of expire_in is an elapsed time in seconds, unless a unit is provided
