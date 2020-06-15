@@ -30,7 +30,7 @@ go_build:
     # Environment variables
     - export REVISION="${CI_COMMIT_TAG}"
     # Save job id
-    - mkdir project_cache
+    - test -d project_cache || mkdir project_cache
     - echo ${CI_JOB_ID} > project_cache/previous_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
