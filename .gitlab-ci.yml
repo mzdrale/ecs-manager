@@ -41,13 +41,13 @@ go_build:
     # The value of expire_in is an elapsed time in seconds, unless a unit is provided
     # https://docs.gitlab.com/ee/ci/yaml/README.html#artifactsexpire_in
     #expire_in: 1h
-    name: ${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64
-    paths:
-      - target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64.tar.gz
-  artifacts:
     name: ${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64
     paths:
       - target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz
+  artifacts:
+    name: ${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64
+    paths:
+      - target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64.tar.gz
   only:
     refs:
       - tags
