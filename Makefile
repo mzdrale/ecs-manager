@@ -1,16 +1,10 @@
-BINARY := ecs-manager
+BINARY := ecs-manager-ng
 REVISION := $(shell git rev-parse --short HEAD)
-CONFIG_DIR := ~/.config/ecs-manager
-CONFIG := config.toml
 
 .PHONY: build
 build:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY} -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${REVISION}"
-
-.PHONY: install
-install:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go install -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${REVISION}"
-	@test -d ${CONFIG_DIR}/${CONFIG} || mkdir -p ${CONFIG_DIR} && cp ${CONFIG} ${CONFIG_DIR}/${CONFIG}
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY}-darwin-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${REVISION}"
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BINARY}-linux-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${REVISION}"
 
 .PHONY: run
 run:
@@ -18,6 +12,5 @@ run:
 
 .PHONY: help
 help:
-	@echo "build   - Compile go code and provide binary for macOS"
-	@echo "install - Compile and install binary in ${GOPATH}/bin"
+	@echo "build   - Compile go code and provide binary for macOS and Linux"
 	@echo "run     - Compile and run go code"
