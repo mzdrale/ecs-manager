@@ -1,6 +1,5 @@
 ### Global variables
 variables:
-  SERIAL: 2020061501
   GO_VERSION: '1.14'
   GOARCH: 'amd64'
 
@@ -31,6 +30,7 @@ cache:
   script:
     # Environment variables
     - export BUILD_JOB_ID=$(cat project_cache/${GOOS}-${GOARCH}_job_id.txt)
+    - echo "Build Job ID: $BUILD_JOB_ID"
     # Create a release
     - |
       curl -sSL -X POST \
@@ -49,7 +49,7 @@ cache:
             ]
           }
         }' \
-      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases" > /dev/null
+      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases"
 
 # Build Job - Darwin (macOS)
 go_build_darwin:
