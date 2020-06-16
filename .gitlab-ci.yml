@@ -99,11 +99,13 @@ go_build_linux:
     refs:
       - tags
 
-# Release  Job
+# Release Linux binary Job
 release_linux_go_binary:
   image: golang:${GO_VERSION}
   stage: release_go_binary
   extends: .ecsmanager_release
+  dependencies:
+    - go_build_linux
   script:
     # Environment variables
     - export GOOS=linux
@@ -117,6 +119,8 @@ release_darwin_go_binary:
   image: golang:${GO_VERSION}
   stage: release_go_binary
   extends: .ecsmanager_release
+  dependencies:
+    - go_build_darwin
   script:
     # Environment variables
     - export GOOS=darwin
