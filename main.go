@@ -45,7 +45,7 @@ func init() {
 
 	// Get process id
 	pid = os.Getpid()
-	log.Printf("Running %v rev %v (PID: %d)", binName, version, pid)
+	log.Printf("Running %v %v (PID: %d)", binName, version, pid)
 
 	// Get user's home dir
 	home, err := os.UserHomeDir()
@@ -567,7 +567,6 @@ ClustersMenu:
 			// Get list of excluded instances
 			excludeFilename := filepath.Join(cfgDir, fmt.Sprintf("%s-instances.exclude", strings.Split(cluster, "/")[1]))
 			excludedInstances, err := common.ReadExcludedInstancesList(excludeFilename)
-			fmt.Printf("Excluded: %#v\n", excludedInstances)
 
 			if err != nil {
 				fmt.Printf(p.Error("\U00002717 Couldn't get list of excluded instances from %s: %v\n"), excludeFilename, err)
@@ -625,16 +624,18 @@ ClustersMenu:
 						// Number of tasks
 						runningTasksCount := len(tasks)
 
-						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Running tasks:"), p.Green(runningTasksCount), p.Yellow("0"))
+						// If it's test cluster, stop tasks, don't wait for drain to finish
+						if testCluster && runningTasksCount > 0 {
+							r, err = ecs.StopTask(cluster, tasks[0])
+							fmt.Printf(p.Info("   \U0000276F Stop task %s: "), tasks[0])
+							fmt.Println(p.Yellow(r))
+						} else {
+							fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Running tasks:"), p.Green(runningTasksCount), p.Yellow("0"))
+						}
 
 						// If task count reached 0, stop the loop
 						if runningTasksCount == 0 {
 							loop = false
-						}
-
-						// If it's test cluster, stop tasks, don't wait for drain to finish
-						if testCluster && runningTasksCount > 0 {
-							_, err = ecs.StopTask(cluster, tasks[0])
 						}
 
 						if loop {
@@ -651,7 +652,7 @@ ClustersMenu:
 						fmt.Printf(p.Error("\n   \U00002717 Couldn't terminate instance %s (%s): %v\n"), inst.Name, inst.Ec2InstanceID, err)
 					}
 					fmt.Println(p.Yellow(r))
-					fmt.Printf("   \U0000276F %s\n", p.Grey("Waiting for instance to shut down."))
+					fmt.Printf("   \U0000276F %s\n", p.Grey("Waiting for instance to shut down"))
 
 					loop = true
 					for loop {
@@ -675,7 +676,7 @@ ClustersMenu:
 							time.Sleep(sleepTime)
 						}
 					}
-					fmt.Printf("\n   \U0000276F %s\n", p.Grey("Instance terminated. Waiting for a new one."))
+					fmt.Printf("\n   \U0000276F %s\n", p.Grey("Instance terminated, waiting for a new one"))
 
 					loop = true
 					for loop {

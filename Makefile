@@ -1,5 +1,5 @@
 BINARY := ecs-manager
-REVISION := $(shell git rev-parse --short HEAD)
+REVISION ?= $(shell git describe --abbrev=0 --tags)
 
 .PHONY: build\:darwin
 build\:darwin:
