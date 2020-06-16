@@ -61,7 +61,7 @@ go_build_darwin:
     - export REVISION="${CI_COMMIT_TAG}"
     - export GOOS="darwin"
     # Save job id
-    - mkdir project_cache
+    - test -d project_cache || mkdir project_cache
     - echo ${CI_JOB_ID} > project_cache/${GOOS}-${GOARCH}_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
@@ -85,7 +85,7 @@ go_build_linux:
     - export REVISION="${CI_COMMIT_TAG}"
     - export GOOS="linux"
     # Save job id
-    - mkdir project_cache
+    - test -d project_cache || mkdir project_cache
     - echo ${CI_JOB_ID} > project_cache/${GOOS}-${GOARCH}_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
