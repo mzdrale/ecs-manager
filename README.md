@@ -55,4 +55,6 @@ test_clusters = [
 
 ## Usage
 
+NOTE: Before running this tool, you need to [Configure AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
+
 Run `ecs-manager` command and follow menu.

@@ -207,8 +207,6 @@ func GetClusterInstancesInfo(cluster string, instances []string) ([]Instance, er
 		return instancesInfo, err
 	}
 
-	// fmt.Printf("[DEBUG] Instance: %#v\n", result)
-
 	for _, ci := range result.ContainerInstances {
 		pattern := `^arn:aws:ecs:.*:.*:container-instance/(.*)$`
 		re := regexp.MustCompile(pattern)
@@ -241,22 +239,22 @@ func GetClusterInstancesInfo(cluster string, instances []string) ([]Instance, er
 }
 
 // StopTask - stop task
-func StopTask(cluster string, task string) (bool, error) {
+func StopTask(cluster string, task string) (string, error) {
 	svc := ecs.New(session.New())
 
 	input := &ecs.StopTaskInput{
 		Cluster: aws.String(cluster),
 		Task:    aws.String(task),
-		Reason:  aws.String("Stopped by update script"),
+		Reason:  aws.String("Stopped by ecs-manager tool"),
 	}
 
-	_, err := svc.StopTask(input)
+	result, err := svc.StopTask(input)
 
 	if err != nil {
-		return false, err
+		return "FAILED", err
 	}
 
-	return true, nil
+	return *result.Task.DesiredStatus, nil
 }
 
 // UpdateContainerAgent - updates ECS container agent
