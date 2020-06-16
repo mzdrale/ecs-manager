@@ -281,7 +281,156 @@ ClustersMenu:
 					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
 					fmt.Printf("_____________________________________________\n\n")
 					goto InstancesMenu
+				}
 
+				// Drain instance
+				if result == "Drain instance" {
+					startTime := time.Now()
+
+					fmt.Printf(p.Info("\U0001F5A5  Drain instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
+					r, e := ecs.DrainContainerInstance(cluster, inst.ARN)
+					if e != nil {
+						fmt.Printf(p.Error("\U00002717 Couldn't drain instance: %v"), err)
+					}
+					fmt.Println(p.Yellow(r))
+
+					// Calculate elapsed time and print it
+					elapsedTime := time.Since(startTime)
+					duration := durafmt.ParseShort(elapsedTime)
+					fmt.Printf("\n_____________________________________________\n\n")
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("_____________________________________________\n\n")
+					goto InstancesMenu
+
+				}
+
+				// Terminate instance
+				if result == "Terminate instance" {
+					prompt := promptui.Prompt{
+						Label:     "Are you sure you want to do this",
+						IsConfirm: true,
+					}
+
+					result, err := prompt.Run()
+
+					if err != nil || result != "y" {
+						os.Exit(0)
+					}
+
+					startTime := time.Now()
+
+					fmt.Printf(p.Info("\U0001F5A5  Terminate instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
+					r, e := ecs.TerminateContainerInstance(inst.Ec2InstanceID)
+					if e != nil {
+						fmt.Printf(p.Error("\U00002717 Couldn't terminate instance: %v"), err)
+					}
+					fmt.Println(p.Yellow(r))
+
+					// Calculate elapsed time and print it
+					elapsedTime := time.Since(startTime)
+					duration := durafmt.ParseShort(elapsedTime)
+					fmt.Printf("\n_____________________________________________\n\n")
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("_____________________________________________\n\n")
+
+					// Sleep few seconds before going back to instances list
+					time.Sleep(3 * time.Second)
+					goto InstancesMenu
+				}
+
+				// Drain and terminate instance
+				if result == "Drain and terminate instance" {
+					prompt := promptui.Prompt{
+						Label:     "Are you sure you want to do this",
+						IsConfirm: true,
+					}
+
+					result, err := prompt.Run()
+
+					if err != nil || result != "y" {
+						os.Exit(0)
+					}
+
+					startTime := time.Now()
+
+					// Drain instance
+					fmt.Printf("\U0001F6B0 Drain instance %s (%s): ", inst.Name, inst.Ec2InstanceID)
+					r, err := ecs.DrainContainerInstance(cluster, inst.Name)
+					if err != nil {
+						fmt.Printf(p.Error("\n   \U00002717 Couldn't drain container instance: %v\n"), err)
+					}
+					fmt.Println(p.Yellow(r))
+
+					// Get instance info
+					r1, err := ecs.GetClusterInstancesInfo(cluster, []string{inst.Name})
+					if err != nil {
+						fmt.Printf(p.Error("\n   \U00002717 Couldn't get instance info: %v\n"), err)
+					}
+					inst := r1[0]
+
+					loop := true
+					for loop {
+						sleepTime := 10 * time.Second
+
+						// Get instance task list
+						tasks, err := ecs.GetInstanceTasks(cluster, inst.Name)
+
+						if err != nil {
+							fmt.Printf(p.Error("\n   \U00002717 Couldn't get list of tasks: %v\n"), err)
+						}
+
+						// Number of tasks
+						runningTasksCount := len(tasks)
+
+						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Running tasks:"), p.Green(runningTasksCount), p.Yellow("0"))
+
+						// If task count reached 0, stop the loop
+						if runningTasksCount == 0 {
+							loop = false
+						}
+
+						// If it's test cluster, stop tasks, don't wait for drain to finish
+						if testCluster && runningTasksCount > 0 {
+							_, err = ecs.StopTask(cluster, tasks[0])
+
+							if err != nil {
+								fmt.Printf(p.Error("\n   \U00002717 Couldn't stop task %s: %v\n"), tasks[0], err)
+							}
+						}
+
+						if loop {
+							time.Sleep(sleepTime)
+						}
+					}
+					fmt.Println()
+
+					fmt.Printf(p.Info("   \U0000276F Terminate instance: "))
+
+					// Terminate instance
+					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID)
+					if err != nil {
+						fmt.Printf(p.Error("\n   \U00002717 Couldn't terminate instance %s (%s): %v\n"), inst.Name, inst.Ec2InstanceID, err)
+					}
+					fmt.Println(p.Yellow(r))
+
+					// Calculate elapsed time and print it
+					elapsedTime := time.Since(startTime)
+					duration := durafmt.ParseShort(elapsedTime)
+					fmt.Printf("\n_____________________________________________\n\n")
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("_____________________________________________\n\n")
+
+					// Sleep few seconds before going back to instances list
+					time.Sleep(3 * time.Second)
+					goto InstancesMenu
+				}
+
+				if result == "Go to clusters menu" {
+					goto ClustersMenu
+				}
+
+				if result == "Go to main menu" {
+					goto MainMenu
 				}
 
 				if result == "Quit" {
@@ -478,11 +627,12 @@ ClustersMenu:
 
 						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Running tasks:"), p.Green(runningTasksCount), p.Yellow("0"))
 
-						// If task count reaced 0, stop the loop
+						// If task count reached 0, stop the loop
 						if runningTasksCount == 0 {
 							loop = false
 						}
 
+						// If it's test cluster, stop tasks, don't wait for drain to finish
 						if testCluster && runningTasksCount > 0 {
 							_, err = ecs.StopTask(cluster, tasks[0])
 						}
