@@ -37,7 +37,7 @@ Create configuration file:
 cat > ~/.config/ecs-manager/config.toml <<EOF
 [ecs]
 
-# When draining instances in these cluster, we'll not wait drain to
+# When draining instances in these clusters, we'll not wait drain to
 # finish, but force task stop to speed up the process
 test_clusters = [
 ]
@@ -52,7 +52,6 @@ test_clusters = [
     "arn:aws:ecs:us-east-1:222222222222:cluster/test-ecs-2"
 ]
 ```
-
 
 ## Usage
 
