@@ -22,6 +22,35 @@ cache:
     - project_cache/
 
 ### Jobs
+
+# Release Job
+.ecsmanager_release:
+  image: golang:${GO_VERSION}
+  extends: .shared
+  dependencies: []
+  script:
+    # Environment variables
+    - export BUILD_JOB_ID=$(cat project_cache/${GOOS}-${GOARCH}_job_id.txt)
+    # Create a release
+    - |
+      curl -sSL -X POST \
+        -H 'Content-Type: application/json' \
+        -H "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
+        -d '{
+          "name": "'"${CI_COMMIT_TAG}"'",
+          "tag_name": "'"${CI_COMMIT_TAG}"'",
+          "description": "'"New ${CI_PROJECT_NAME} release"'",
+          "assets": {
+            "links": [
+              {
+                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'",
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'"
+              }
+            ]
+          }
+        }' \
+      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases" > /dev/null
+
 # Build Job - Darwin (macOS)
 go_build_darwin:
   image: golang:${GO_VERSION}
@@ -31,10 +60,9 @@ go_build_darwin:
     # Environment variables
     - export REVISION="${CI_COMMIT_TAG}"
     - export GOOS="darwin"
-    # - export GOARCH="amd64"
     # Save job id
-    - test -d project_cache || mkdir project_cache
-    - echo ${CI_JOB_ID} > project_cache/previous_job_id.txt
+    - mkdir project_cache
+    - echo ${CI_JOB_ID} > project_cache/${GOOS}-${GOARCH}_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
     - make build:${GOOS}
@@ -56,10 +84,9 @@ go_build_linux:
     # Environment variables
     - export REVISION="${CI_COMMIT_TAG}"
     - export GOOS="linux"
-    # - export GOARCH="amd64"
     # Save job id
-    - test -d project_cache || mkdir project_cache
-    - echo ${CI_JOB_ID} > project_cache/previous_job_id.txt
+    - mkdir project_cache
+    - echo ${CI_JOB_ID} > project_cache/${GOOS}-${GOARCH}_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
     - make build:${GOOS}
@@ -72,35 +99,15 @@ go_build_linux:
     refs:
       - tags
 
-# Release Linux binary Job
+# Release  Job
 release_linux_go_binary:
   image: golang:${GO_VERSION}
   stage: release_go_binary
-  extends: .shared
+  extends: .ecsmanager_release
   script:
     # Environment variables
-    - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
     - export GOOS=linux
-    # - export GOARCH=amd64
-    # Create a release
-    - |
-      curl -sSL -X POST \
-        -H 'Content-Type: application/json' \
-        -H "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
-        -d '{
-          "name": "'"${CI_COMMIT_TAG}"'",
-          "tag_name": "'"${CI_COMMIT_TAG}"'",
-          "description": "'"New ${CI_PROJECT_NAME} release"'",
-          "assets": {
-            "links": [
-              {
-                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'",
-                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${PREVIOUS_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'"
-              }
-            ]
-          }
-        }' \
-      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases" > /dev/null
+    - export BUILD_JOB_ID=$(cat project_cache/${GOOS}-${GOARCH}_job_id.txt)
   only:
     refs:
       - tags
@@ -109,31 +116,11 @@ release_linux_go_binary:
 release_darwin_go_binary:
   image: golang:${GO_VERSION}
   stage: release_go_binary
-  extends: .shared
+  extends: .ecsmanager_release
   script:
     # Environment variables
-    - export PREVIOUS_JOB_ID=$(cat project_cache/previous_job_id.txt)
     - export GOOS=darwin
-    # - export GOARCH=amd64
-    # Create a release
-    - |
-      curl -sSL -X POST \
-        -H 'Content-Type: application/json' \
-        -H "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
-        -d '{
-          "name": "'"${CI_COMMIT_TAG}"'",
-          "tag_name": "'"${CI_COMMIT_TAG}"'",
-          "description": "'"New ${CI_PROJECT_NAME} release"'",
-          "assets": {
-            "links": [
-              {
-                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'",
-                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${PREVIOUS_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-${GOOS}-${GOARCH}.tar.gz"'"
-              }
-            ]
-          }
-        }' \
-      "https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/releases" > /dev/null
+    - export BUILD_JOB_ID=$(cat project_cache/${GOOS}-${GOARCH}_job_id.txt)
   only:
     refs:
       - tags
