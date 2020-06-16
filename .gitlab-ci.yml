@@ -39,6 +39,7 @@ stages:
     name: ${CI_PROJECT_NAME}
     paths:
       - target/*.tar.gz
+      - project_cache/*.txt
 
 # Build Job - Linux
 go_build_linux:
@@ -46,10 +47,6 @@ go_build_linux:
   extends: .go_build
   variables:
     GOOS: "linux"
-  cache:
-    key: ${CI_COMMIT_TAG}-linux
-    paths:
-      - project_cache/
   only:
     refs:
       - tags
@@ -60,10 +57,6 @@ go_build_darwin:
   extends: .go_build
   variables:
     GOOS: "darwin"
-  cache:
-    key: ${CI_COMMIT_TAG}-darwin
-    paths:
-      - project_cache/
   only:
     refs:
       - tags
@@ -73,6 +66,9 @@ release_go_binaries:
   image: golang:${GO_VERSION}
   stage: release_go_binaries
   extends: .shared
+  dependencies:
+    - go_build_linux
+    - go_build_darwin
   script:
     # Environment variables
     - export LINUX_BUILD_JOB_ID=$(cat project_cache/linux-${GOARCH}_job_id.txt)
