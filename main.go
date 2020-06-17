@@ -12,7 +12,6 @@ import (
 	"ecs-manager-ng/ecs"
 	p "ecs-manager-ng/prompt"
 
-	"github.com/hako/durafmt"
 	"github.com/manifoldco/promptui"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -255,9 +254,8 @@ ClustersMenu:
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
-					duration := durafmt.ParseShort(elapsedTime)
 					fmt.Printf("\n_____________________________________________\n\n")
-					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 					fmt.Printf("_____________________________________________\n\n")
 					goto InstancesMenu
 
@@ -276,9 +274,8 @@ ClustersMenu:
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
-					duration := durafmt.ParseShort(elapsedTime)
 					fmt.Printf("\n_____________________________________________\n\n")
-					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 					fmt.Printf("_____________________________________________\n\n")
 					goto InstancesMenu
 				}
@@ -296,9 +293,8 @@ ClustersMenu:
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
-					duration := durafmt.ParseShort(elapsedTime)
 					fmt.Printf("\n_____________________________________________\n\n")
-					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 					fmt.Printf("_____________________________________________\n\n")
 					goto InstancesMenu
 
@@ -328,9 +324,8 @@ ClustersMenu:
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
-					duration := durafmt.ParseShort(elapsedTime)
 					fmt.Printf("\n_____________________________________________\n\n")
-					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 					fmt.Printf("_____________________________________________\n\n")
 
 					// Sleep few seconds before going back to instances list
@@ -415,9 +410,8 @@ ClustersMenu:
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
-					duration := durafmt.ParseShort(elapsedTime)
 					fmt.Printf("\n_____________________________________________\n\n")
-					fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+					fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 					fmt.Printf("_____________________________________________\n\n")
 
 					// Sleep few seconds before going back to instances list
@@ -490,9 +484,8 @@ ClustersMenu:
 
 			// Calculate elapsed time and print it
 			elapsedTime := time.Since(startTime)
-			duration := durafmt.ParseShort(elapsedTime)
 			fmt.Printf("\n_____________________________________________\n\n")
-			fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+			fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 			fmt.Printf("_____________________________________________\n\n")
 			goto ClustersMenu
 		}
@@ -534,9 +527,8 @@ ClustersMenu:
 
 			// Calculate elapsed time and print it
 			elapsedTime := time.Since(startTime)
-			duration := durafmt.ParseShort(elapsedTime)
 			fmt.Printf("\n_____________________________________________\n\n")
-			fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+			fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 			fmt.Printf("_____________________________________________\n\n")
 
 			goto ClustersMenu
@@ -588,7 +580,7 @@ ClustersMenu:
 
 				// Iterate through instance list and update container agent
 				for i, inst := range instancesInfo {
-					fmt.Printf(p.Info("\U0001F5A5  [%d/%d] Instance %s: "), i+1, len(instancesInfo), inst.Name)
+					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s: "), i+1, len(instancesInfo), inst.Name)
 
 					// Check if instance is excluded
 					if common.ElementInSlice(inst.Name, excludedInstances) {
@@ -705,9 +697,8 @@ ClustersMenu:
 
 				// Calculate elapsed time and print it
 				elapsedTime := time.Since(startTime)
-				duration := durafmt.ParseShort(elapsedTime)
 				fmt.Printf("\n_____________________________________________\n\n")
-				fmt.Printf("   %s %s\n", p.Grey("Duration:"), duration.String())
+				fmt.Printf("   %s %s\n", p.Grey("Duration:"), common.FormatDuration(elapsedTime))
 				fmt.Printf("_____________________________________________\n\n")
 
 			} else {

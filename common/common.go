@@ -2,8 +2,10 @@ package common
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"regexp"
+	"time"
 )
 
 // ElementInSlice - returns true if slice contains element
@@ -23,6 +25,40 @@ func FileExists(path string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+// FormatDuration - format duration into human readable time format
+func FormatDuration(d time.Duration) string {
+	durationString := ""
+
+	// Hours
+	h := d / time.Hour
+	d -= h * time.Hour
+
+	if h > 0 {
+		durationString = fmt.Sprintf("%d hour", h)
+	}
+
+	// Minutes
+	m := d / time.Minute
+	d -= m * time.Minute
+
+	// Seconds
+	s := d / time.Second
+
+	durationString = fmt.Sprintf("%ds", s)
+
+	if m > 0 {
+		durationString = fmt.Sprintf("%dm %s", m, durationString)
+	}
+
+	if h > 0 {
+		durationString = fmt.Sprintf("%dh %s", h, durationString)
+	}
+
+	// return fmt.Sprintf("%d hour(s) %d minute(s) %d second(s)", h, m, s)
+	// fmt.Printf("Duration debug: %s\n", durationString)
+	return durationString
 }
 
 // ReadExcludedInstancesList - reads excluded instances list from file
