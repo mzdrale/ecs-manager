@@ -228,6 +228,7 @@ ClustersMenu:
 						"Drain instance",
 						"Terminate instance",
 						"Drain and terminate instance",
+						"Go to instances menu",
 						"Go to clusters menu",
 						"Go to main menu",
 						"Quit",
@@ -419,6 +420,10 @@ ClustersMenu:
 					goto InstancesMenu
 				}
 
+				if result == "Go to instances menu" {
+					goto InstancesMenu
+				}
+
 				if result == "Go to clusters menu" {
 					goto ClustersMenu
 				}
@@ -433,6 +438,7 @@ ClustersMenu:
 
 			} else {
 				fmt.Println(p.Info("\U00002717 No instances in cluster."))
+				goto ClustersMenu
 			}
 
 		}
