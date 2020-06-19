@@ -350,7 +350,7 @@ ClustersMenu:
 					startTime := time.Now()
 
 					// Drain instance
-					fmt.Printf("\U0001F6B0 Drain instance %s (%s): ", inst.Name, inst.Ec2InstanceID)
+					fmt.Printf(p.Info("\U0001F6B0 Drain instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
 					r, err := ecs.DrainContainerInstance(cluster, inst.Name)
 					if err != nil {
 						fmt.Printf(p.Error("\n   \U00002717 Couldn't drain container instance: %v\n"), err)

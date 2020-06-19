@@ -27,14 +27,14 @@ stages:
   extends: .shared
   script:
     # Environment variables
-    - export REVISION="${CI_COMMIT_TAG}"
+    - export VERSION="${CI_COMMIT_TAG}"
     # Save job id
     - test -d project_cache || mkdir project_cache
     - echo ${CI_JOB_ID} > project_cache/${GOOS}-${GOARCH}_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
     - make build:${GOOS}
-    - tar czvf target/${CI_PROJECT_NAME}-${REVISION}-${GOOS}-${GOARCH}.tar.gz ${CI_PROJECT_NAME}-${GOOS}-${GOARCH}
+    - tar czvf target/${CI_PROJECT_NAME}-${VERSION}-${GOOS}-${GOARCH}.tar.gz ${CI_PROJECT_NAME}-${VERSION}-${GOOS}-${GOARCH}
   artifacts:
     name: ${CI_PROJECT_NAME}
     paths:
