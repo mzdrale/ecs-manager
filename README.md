@@ -19,8 +19,8 @@ tar xzvf ecs-manager-0.1.0-darwin-amd64.tar.gz
 Copy binary to some directory in `$PATH`, for example `/usr/local/bin`:
 
 ```bash
-mv ecs-manager-0.1.0-darwin-amd64 /usr/local/bin/ecs-manage
-chmod 755 /usr/local/bin/ecs-manage
+mv ecs-manager-0.1.0-darwin-amd64 /usr/local/bin/ecs-manager
+chmod 755 /usr/local/bin/ecs-manager
 ```
 
 ## Configure
@@ -57,4 +57,4 @@ test_clusters = [
 
 NOTE: Before running this tool, you need to [Configure AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
 
-Run `ecs-manager` command and follow menu.
+Run `ecs-manager` command and follow the menu.
