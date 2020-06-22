@@ -2,6 +2,11 @@
 
 This file is used to list changes made in each version of ecs-manager.
 
+## 0.1.2 (June 22 2020)
+
+- Add LICENSE ([@mzdrale](https://gitlab.com/mzdrale))
+- Fix some text output ([@mzdrale](https://gitlab.com/mzdrale))
+
 ## 0.1.1 (June 19 2020)
 
 - Fix some text output format and color ([@mzdrale](https://gitlab.com/mzdrale))

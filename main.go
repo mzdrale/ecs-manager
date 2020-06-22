@@ -137,8 +137,8 @@ ClustersMenu:
 			fmt.Printf(p.Red("                          TEST CLUSTER \n"))
 			fmt.Printf("______________________________________________________________\n\n")
 			fmt.Printf(p.Red(" This cluster is listed in test_clusters list in config file. \n"))
-			fmt.Printf(p.Red(" It means if you choose to drain instances in this cluster, \n"))
-			fmt.Printf(p.Red(" this tool will not wait for drain to finish, but force stop \n"))
+			fmt.Printf(p.Red(" It means if you chose to drain instances in this cluster, \n"))
+			fmt.Printf(p.Red(" this tool would not wait for drain to finish, but force stop \n"))
 			fmt.Printf(p.Red(" tasks one by one.\n"))
 			fmt.Printf("______________________________________________________________\n\n")
 		}
