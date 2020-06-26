@@ -2,6 +2,10 @@
 
 This file is used to list changes made in each version of ecs-manager.
 
+## 0.1.3 (TBD)
+
+- Add `version` argument ([@mzdrale](https://gitlab.com/mzdrale))
+
 ## 0.1.2 (June 22 2020)
 
 - Add LICENSE ([@mzdrale](https://gitlab.com/mzdrale))

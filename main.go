@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,9 +31,10 @@ var (
 	err           error
 )
 
-// Config vatiables
+// Config variables
 var (
 	cTestClusters []string
+	aPrintVersion bool
 )
 
 func init() {
@@ -42,14 +42,10 @@ func init() {
 	// Use config from ~/.aws
 	os.Setenv("AWS_SDK_LOAD_CONFIG", "true")
 
-	// Get process id
-	pid = os.Getpid()
-	log.Printf("Running %v %v (PID: %d)", binName, version, pid)
-
 	// Get user's home dir
 	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Printf(p.Error("\U00002717 Unable to determine current user's home dir: %s\n\n"), err.Error())
+		fmt.Printf(p.Error("\U00002717 Unable to determine current user's home dir: %s\n\n"), err.Error())
 		os.Exit(1)
 	}
 
@@ -66,7 +62,7 @@ func init() {
 
 	// Try to read config
 	if err := viper.ReadInConfig(); err != nil {
-		log.Printf(p.Error("\U00002717 Unable to read configuration file: %s\n\n"), err.Error())
+		fmt.Printf(p.Error("\U00002717 Unable to read configuration file: %s\n\n"), err.Error())
 		os.Exit(1)
 	}
 
@@ -76,17 +72,24 @@ func init() {
 		flag.PrintDefaults()
 	}
 
-	// Get arguments
+	// Get configs from file
 	cTestClusters = viper.GetStringSlice("ecs.test_clusters")
 
-	flag.Parse()
+	// Get arguments
+	flag.BoolVarP(&aPrintVersion, "version", "V", false, "Print version")
 
-	// Print config file
-	log.Printf("Config file: %s\n\n", viper.ConfigFileUsed())
+	flag.Parse()
 
 }
 
 func main() {
+
+	if aPrintVersion {
+		fmt.Printf("\n%v %v\n\n", binName, version)
+		fmt.Printf("Config file: %s\n", viper.ConfigFileUsed())
+		fmt.Printf("URL: https://gitlab.com/mzdrale/ecs-manager\n\n")
+		os.Exit(0)
+	}
 
 	// Main menu
 MainMenu:
