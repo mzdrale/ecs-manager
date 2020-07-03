@@ -49,24 +49,6 @@ func GetClusters() ([]string, error) {
 	result, err := svc.ListClusters(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return clusters, err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return clusters, err
-		}
 		return clusters, err
 	}
 
@@ -77,40 +59,21 @@ func GetClusters() ([]string, error) {
 	return clusters, nil
 }
 
-// GetClusterInfo - gets ECS cluster info
-func GetClusterInfo(arn string) (Cluster, error) {
+// GetClustersInfo - gets ECS clusters info
+func GetClustersInfo(arns []string) ([]Cluster, error) {
 	clusterInfo := Cluster{}
+	clustersInfo := []Cluster{}
 
 	svc := ecs.New(session.New())
 
 	input := &ecs.DescribeClustersInput{
-		Clusters: []*string{
-			aws.String(arn),
-		},
+		Clusters: aws.StringSlice(arns),
 	}
 
 	result, err := svc.DescribeClusters(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return clusterInfo, err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return clusterInfo, err
-		}
-		return clusterInfo, err
+		return clustersInfo, err
 	}
 
 	for _, r := range result.Clusters {
@@ -121,9 +84,11 @@ func GetClusterInfo(arn string) (Cluster, error) {
 		clusterInfo.RunningTasksCount = *r.RunningTasksCount
 		clusterInfo.PendingTasksCount = *r.PendingTasksCount
 		clusterInfo.ActiveServicesCount = *r.ActiveServicesCount
+
+		clustersInfo = append(clustersInfo, clusterInfo)
 	}
 
-	return clusterInfo, err
+	return clustersInfo, err
 }
 
 // GetClusterInstances - gets ECS cluster instances
@@ -139,24 +104,6 @@ func GetClusterInstances(arn string) ([]string, error) {
 	result, err := svc.ListContainerInstances(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return instances, err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return instances, err
-		}
 		return instances, err
 	}
 
@@ -171,7 +118,7 @@ func GetClusterInstances(arn string) ([]string, error) {
 	return instances, err
 }
 
-// GetClusterInstancesInfo - gets ECS cluster instance info
+// GetClusterInstancesInfo - gets ECS cluster instances info
 func GetClusterInstancesInfo(cluster string, instances []string) ([]Instance, error) {
 	instanceInfo := Instance{}
 	instancesInfo := []Instance{}
@@ -186,24 +133,6 @@ func GetClusterInstancesInfo(cluster string, instances []string) ([]Instance, er
 	result, err := svc.DescribeContainerInstances(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return instancesInfo, err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return instancesInfo, err
-		}
 		return instancesInfo, err
 	}
 
@@ -270,27 +199,13 @@ func UpdateContainerAgent(cluster string, instance string) (string, error) {
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeNoUpdateAvailableException:
+			if aerr.Code() == ecs.ErrCodeNoUpdateAvailableException {
 				return "UP TO DATE", nil
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return "FAILED", err
 			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return "FAILED", err
 		}
 		return "FAILED", err
 	}
+
 	return *result.ContainerInstance.AgentUpdateStatus, nil
 }
 
@@ -307,28 +222,7 @@ func GetInstanceTasks(cluster string, instance string) ([]string, error) {
 	result, err := svc.ListTasks(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			case ecs.ErrCodeClusterNotFoundException:
-				fmt.Println(ecs.ErrCodeClusterNotFoundException, aerr.Error())
-			case ecs.ErrCodeServiceNotFoundException:
-				fmt.Println(ecs.ErrCodeServiceNotFoundException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return tasks, err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return tasks, err
-		}
+		return tasks, err
 	}
 
 	for _, taskArn := range result.TaskArns {
@@ -355,24 +249,6 @@ func ActivateContainerInstance(cluster string, instance string) (string, error) 
 	result, err := svc.UpdateContainerInstancesState(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return "FAILED", err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return "FAILED", err
-		}
 		return "FAILED", err
 	}
 
@@ -392,24 +268,6 @@ func DrainContainerInstance(cluster string, instance string) (string, error) {
 	result, err := svc.UpdateContainerInstancesState(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecs.ErrCodeServerException:
-				fmt.Println(ecs.ErrCodeServerException, aerr.Error())
-			case ecs.ErrCodeClientException:
-				fmt.Println(ecs.ErrCodeClientException, aerr.Error())
-			case ecs.ErrCodeInvalidParameterException:
-				fmt.Println(ecs.ErrCodeInvalidParameterException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-				return "FAILED", err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return "FAILED", err
-		}
 		return "FAILED", err
 	}
 
@@ -418,7 +276,6 @@ func DrainContainerInstance(cluster string, instance string) (string, error) {
 
 // TerminateContainerInstance terminates instance
 func TerminateContainerInstance(instance string) (string, error) {
-	// res := []string{}
 	svc := ec2.New(session.New())
 
 	input := &ec2.TerminateInstancesInput{
@@ -428,19 +285,6 @@ func TerminateContainerInstance(instance string) (string, error) {
 	result, err := svc.TerminateInstances(input)
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			default:
-				fmt.Println(aerr.Error())
-
-				return "FAILED", err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return "FAILED", err
-		}
 		return "FAILED", err
 	}
 
