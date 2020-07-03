@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,9 +31,10 @@ var (
 	err           error
 )
 
-// Config vatiables
+// Config variables
 var (
 	cTestClusters []string
+	aPrintVersion bool
 )
 
 func init() {
@@ -42,14 +42,10 @@ func init() {
 	// Use config from ~/.aws
 	os.Setenv("AWS_SDK_LOAD_CONFIG", "true")
 
-	// Get process id
-	pid = os.Getpid()
-	log.Printf("Running %v %v (PID: %d)", binName, version, pid)
-
 	// Get user's home dir
 	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Printf(p.Error("\U00002717 Unable to determine current user's home dir: %s\n\n"), err.Error())
+		fmt.Printf(p.Error("\U00002717 Unable to determine current user's home dir: %s\n\n"), err.Error())
 		os.Exit(1)
 	}
 
@@ -66,7 +62,7 @@ func init() {
 
 	// Try to read config
 	if err := viper.ReadInConfig(); err != nil {
-		log.Printf(p.Error("\U00002717 Unable to read configuration file: %s\n\n"), err.Error())
+		fmt.Printf(p.Error("\U00002717 Unable to read configuration file: %s\n\n"), err.Error())
 		os.Exit(1)
 	}
 
@@ -76,17 +72,24 @@ func init() {
 		flag.PrintDefaults()
 	}
 
-	// Get arguments
+	// Get configs from file
 	cTestClusters = viper.GetStringSlice("ecs.test_clusters")
 
-	flag.Parse()
+	// Get arguments
+	flag.BoolVarP(&aPrintVersion, "version", "V", false, "Print version")
 
-	// Print config file
-	log.Printf("Config file: %s\n\n", viper.ConfigFileUsed())
+	flag.Parse()
 
 }
 
 func main() {
+
+	if aPrintVersion {
+		fmt.Printf("\n%v %v\n\n", binName, version)
+		fmt.Printf("Config file: %s\n", viper.ConfigFileUsed())
+		fmt.Printf("URL: https://gitlab.com/mzdrale/ecs-manager\n\n")
+		os.Exit(0)
+	}
 
 	// Main menu
 MainMenu:
@@ -116,22 +119,73 @@ ClustersMenu:
 			fmt.Printf(p.Error("\U00002717 Couldn't get list of ECS clusters: %v\n"), err)
 		}
 
-		// Select cluster
-		prompt := promptui.Select{
-			Label: "[ Select cluster ]",
-			Items: clusters,
-			Size:  30,
+		// If no clusters found, return to main menu
+		if len(clusters) == 0 {
+			fmt.Println(p.Info("\U00002717 No instances in cluster."))
+			goto MainMenu
 		}
 
-		_, cluster, err = prompt.Run()
+		clustersInfo, err := ecs.GetClustersInfo(clusters)
+		if err != nil {
+			fmt.Printf(p.Error("\U00002717 Couldn't get list of ECS clusters: %v\n"), err)
+		}
+		// fmt.Printf("%#v\n", clustersInfo)
+
+		templates := &promptui.SelectTemplates{
+			Label:    "{{ . }}?",
+			Active:   "\U00002771 {{ .Name | blue }} [ instances:{{ .RegisteredInstancesCount | cyan }} | running:{{ .RunningTasksCount | cyan }} | pending:{{ .PendingTasksCount | cyan }} ] \U00002770",
+			Inactive: "  {{ .Name | blue }} [ instances:{{ .RegisteredInstancesCount | cyan }} | running:{{ .RunningTasksCount | cyan }} | pending:{{ .PendingTasksCount | cyan }} ]",
+			Selected: "\U00002714 {{ .Name | blue }} [ instances:{{ .RegisteredInstancesCount | cyan }} | running:{{ .RunningTasksCount | cyan }} | pending:{{ .PendingTasksCount | cyan }} ]",
+			Details: `
+		--------------[ Cluster details ]---------------
+		{{ "ARN:" | faint }}              {{ .ARN }}
+		{{ "Name:" | faint }}             {{ .Name }}
+		{{ "Status:" | faint }}           {{ .Status }}
+		{{ "Instances Count:" | faint }}  {{ .RegisteredInstancesCount }}
+		{{ "Running Tasks:" | faint }}    {{ .RunningTasksCount }}
+		{{ "Pending Tasks:" | faint }}    {{ .PendingTasksCount }}`,
+		}
+
+		searcher := func(input string, index int) bool {
+			clust := clustersInfo[index]
+			name := strings.Replace(strings.ToLower(clust.Name), " ", "", -1)
+			input = strings.Replace(strings.ToLower(input), " ", "", -1)
+
+			return strings.Contains(name, input)
+		}
+
+		prompt = promptui.Select{
+			Label:     "Select cluster",
+			Items:     clustersInfo,
+			Templates: templates,
+			Size:      10,
+			Searcher:  searcher,
+		}
+
+		i, _, err := prompt.Run()
 
 		if err != nil {
-			fmt.Printf(p.Error("\U00002717 Cluster selection failed!\n"))
+			fmt.Printf(p.Error("\U00002717 Prompt failed %v\n"), err)
 		}
+
+		clust := clustersInfo[i]
+
+		// // Select cluster
+		// prompt := promptui.Select{
+		// 	Label: "[ Select cluster ]",
+		// 	Items: clusters,
+		// 	Size:  30,
+		// }
+
+		// _, cluster, err = prompt.Run()
+
+		// if err != nil {
+		// 	fmt.Printf(p.Error("\U00002717 Cluster selection failed!\n"))
+		// }
 
 		testCluster := false
 
-		if common.ElementInSlice(cluster, cTestClusters) {
+		if common.ElementInSlice(clust.ARN, cTestClusters) {
 			testCluster = true
 			fmt.Printf("\n==============================================================\n")
 			fmt.Printf(p.Red("                          TEST CLUSTER \n"))
@@ -167,16 +221,17 @@ ClustersMenu:
 	InstancesMenu:
 		if result == "Instances" {
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(cluster)
+			instances, err := ecs.GetClusterInstances(clust.ARN)
 
 			if err != nil {
-				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), cluster, err)
+				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 			}
 
 			if len(instances) > 0 {
-				instancesInfo, err = ecs.GetClusterInstancesInfo(cluster, instances)
+				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
+
 				if err != nil {
-					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), cluster, err)
+					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
 
 				templates := &promptui.SelectTemplates{
@@ -247,11 +302,12 @@ ClustersMenu:
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Update ECS Agent on %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, e := ecs.UpdateContainerAgent(cluster, inst.Name)
-					if e != nil {
-						fmt.Printf(p.Error("\U00002717 Couldn't update container agent: %v"), err)
+					r, err := ecs.UpdateContainerAgent(clust.ARN, inst.Name)
+					if err != nil {
+						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't update container agent: %v"), err)
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
@@ -267,11 +323,12 @@ ClustersMenu:
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Activate instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, e := ecs.ActivateContainerInstance(cluster, inst.ARN)
-					if e != nil {
-						fmt.Printf(p.Error("\U00002717 Couldn't activate instance: %v"), err)
+					r, err := ecs.ActivateContainerInstance(clust.ARN, inst.ARN)
+					if err != nil {
+						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't activate instance: %v"), err)
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
@@ -286,11 +343,12 @@ ClustersMenu:
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Drain instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, e := ecs.DrainContainerInstance(cluster, inst.ARN)
-					if e != nil {
-						fmt.Printf(p.Error("\U00002717 Couldn't drain instance: %v"), err)
+					r, err := ecs.DrainContainerInstance(clust.ARN, inst.ARN)
+					if err != nil {
+						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't drain instance: %v"), err)
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
@@ -311,17 +369,18 @@ ClustersMenu:
 					result, err := prompt.Run()
 
 					if err != nil || result != "y" {
-						os.Exit(0)
+						goto InstancesMenu
 					}
 
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Terminate instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, e := ecs.TerminateContainerInstance(inst.Ec2InstanceID)
-					if e != nil {
-						fmt.Printf(p.Error("\U00002717 Couldn't terminate instance: %v"), err)
+					r, err := ecs.TerminateContainerInstance(inst.Ec2InstanceID)
+					if err != nil {
+						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't terminate instance: %v"), err)
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
@@ -344,32 +403,35 @@ ClustersMenu:
 					result, err := prompt.Run()
 
 					if err != nil || result != "y" {
-						os.Exit(0)
+						goto InstancesMenu
 					}
 
 					startTime := time.Now()
 
 					// Drain instance
 					fmt.Printf(p.Info("\U0001F6B0 Drain instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, err := ecs.DrainContainerInstance(cluster, inst.Name)
+					r, err := ecs.DrainContainerInstance(clust.ARN, inst.Name)
 					if err != nil {
-						fmt.Printf(p.Error("\n   \U00002717 Couldn't drain container instance: %v\n"), err)
+						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't drain container instance: %v\n"), err)
+						goto InstancesMenu
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Get instance info
-					r1, err := ecs.GetClusterInstancesInfo(cluster, []string{inst.Name})
+					r1, err := ecs.GetClusterInstancesInfo(clust.ARN, []string{inst.Name})
 					if err != nil {
 						fmt.Printf(p.Error("\n   \U00002717 Couldn't get instance info: %v\n"), err)
 					}
 					inst := r1[0]
 
 					loop := true
+					actionFailedCnt := 0
 					for loop {
 						sleepTime := 10 * time.Second
 
 						// Get instance task list
-						tasks, err := ecs.GetInstanceTasks(cluster, inst.Name)
+						tasks, err := ecs.GetInstanceTasks(clust.ARN, inst.Name)
 
 						if err != nil {
 							fmt.Printf(p.Error("\n   \U00002717 Couldn't get list of tasks: %v\n"), err)
@@ -378,8 +440,6 @@ ClustersMenu:
 						// Number of tasks
 						runningTasksCount := len(tasks)
 
-						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Running tasks:"), p.Green(runningTasksCount), p.Yellow("0"))
-
 						// If task count reached 0, stop the loop
 						if runningTasksCount == 0 {
 							loop = false
@@ -387,14 +447,25 @@ ClustersMenu:
 
 						// If it's test cluster, stop tasks, don't wait for drain to finish
 						if testCluster && runningTasksCount > 0 {
-							_, err = ecs.StopTask(cluster, tasks[0])
-
+							r, err = ecs.StopTask(clust.ARN, tasks[0])
+							fmt.Printf(p.Info("   \U0000276F Stop task %s: "), tasks[0])
 							if err != nil {
-								fmt.Printf(p.Error("\n   \U00002717 Couldn't stop task %s: %v\n"), tasks[0], err)
+								fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't stop the task: %v\n"), err)
+								actionFailedCnt++
+							} else {
+								fmt.Println(p.Yellow(r))
 							}
+						} else {
+							fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Running tasks:"), p.Green(runningTasksCount), p.Yellow("0"))
 						}
 
-						if loop {
+						// If action failed so many times, give up
+						if actionFailedCnt > 5 {
+							fmt.Print(p.Error("    \U00002937 Failed too many times, giving up!\n\n"))
+							goto InstancesMenu
+						}
+
+						if loop && r != "FAILED" {
 							time.Sleep(sleepTime)
 						}
 					}
@@ -403,11 +474,12 @@ ClustersMenu:
 					fmt.Printf(p.Info("   \U0000276F Terminate instance: "))
 
 					// Terminate instance
-					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID)
+					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID + "aaa")
 					if err != nil {
-						fmt.Printf(p.Error("\n   \U00002717 Couldn't terminate instance %s (%s): %v\n"), inst.Name, inst.Ec2InstanceID, err)
+						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't terminate instance: %v"), err)
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Calculate elapsed time and print it
 					elapsedTime := time.Since(startTime)
@@ -448,21 +520,21 @@ ClustersMenu:
 			startTime := time.Now()
 
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(cluster)
+			instances, err := ecs.GetClusterInstances(clust.ARN)
 
 			if err != nil {
-				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n", cluster, err))
+				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n", clust.Name, err))
 			}
 
 			if len(instances) > 0 {
 
-				instancesInfo, err = ecs.GetClusterInstancesInfo(cluster, instances)
+				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
 				if err != nil {
-					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), cluster, err)
+					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
 
 				// File name
-				filename := filepath.Join(cfgDir, fmt.Sprintf("%s-instances.list", strings.Split(cluster, "/")[1]))
+				filename := filepath.Join(cfgDir, fmt.Sprintf("%s-instances.list", clust.Name))
 
 				// Create file and open for writing
 				f, err := os.Create(filename)
@@ -501,26 +573,27 @@ ClustersMenu:
 			startTime := time.Now()
 
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(cluster)
+			instances, err := ecs.GetClusterInstances(clust.ARN)
 
 			if err != nil {
-				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), cluster, err)
+				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 			}
 
 			if len(instances) > 0 {
-				instancesInfo, err = ecs.GetClusterInstancesInfo(cluster, instances)
+				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
 				if err != nil {
-					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), cluster, err)
+					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
 
 				// Iterate through instance list and update container agent
 				for i, inst := range instancesInfo {
-					fmt.Printf(p.Info("\U0001F5A5  [%d/%d] %s (%s): "), i+1, len(instancesInfo), inst.Name, inst.Ec2InstanceID)
-					r, e := ecs.UpdateContainerAgent(cluster, inst.Name)
-					if e != nil {
-						fmt.Printf(p.Error("\U00002717 Couldn't update container agent: %v"), err)
+					fmt.Printf(p.Info("\U0001F5A5  Update agent on %s (%s) [%02d/%02d]: "), inst.Name, inst.Ec2InstanceID, i+1, len(instancesInfo))
+					r, err := ecs.UpdateContainerAgent(clust.ARN, inst.Name)
+					if err != nil {
+						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't update container agent: %v\n"), err)
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Let's wait a few seconds before proceeding to next instance
 					if r == "PENDING" && i < len(instancesInfo)-1 {
@@ -550,20 +623,20 @@ ClustersMenu:
 			result, err := prompt.Run()
 
 			if err != nil || result != "y" {
-				os.Exit(0)
+				goto ClustersMenu
 			}
 
 			startTime := time.Now()
 
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(cluster)
+			instances, err := ecs.GetClusterInstances(clust.ARN)
 
 			if err != nil {
-				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), cluster, err)
+				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 			}
 
 			// Get list of excluded instances
-			excludeFilename := filepath.Join(cfgDir, fmt.Sprintf("%s-instances.exclude", strings.Split(cluster, "/")[1]))
+			excludeFilename := filepath.Join(cfgDir, fmt.Sprintf("%s-instances.exclude", clust.Name))
 			excludedInstances, err := common.ReadExcludedInstancesList(excludeFilename)
 
 			if err != nil {
@@ -571,22 +644,24 @@ ClustersMenu:
 			}
 
 			// Get cluster info
-			r, err := ecs.GetClusterInfo(cluster)
+			r, err := ecs.GetClustersInfo([]string{clust.ARN})
 			if err != nil {
-				fmt.Printf(p.Error("\U00002717 Couldn't get cluster info: %v\n"), cluster, err)
+				fmt.Printf(p.Error("\U00002717 Couldn't get cluster info: %v\n"), clust.Name, err)
 			}
-			registeredInstancesCount := r.RegisteredInstancesCount
+
+			registeredInstancesCount := r[0].RegisteredInstancesCount
 
 			// Iterate over instances
 			if len(instances) > 0 {
-				instancesInfo, err = ecs.GetClusterInstancesInfo(cluster, instances)
+				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
 				if err != nil {
-					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), cluster, err)
+					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
 
 				// Iterate through instance list and update container agent
 				for i, inst := range instancesInfo {
-					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s: "), i+1, len(instancesInfo), inst.Name)
+					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s (%s)\n"), i+1, len(instancesInfo), inst.Name, inst.Ec2InstanceID)
+					fmt.Printf(p.Info("   \U0000276F Drain instance: "))
 
 					// Check if instance is excluded
 					if common.ElementInSlice(inst.Name, excludedInstances) {
@@ -595,14 +670,16 @@ ClustersMenu:
 					}
 
 					// Drain instance
-					r, err := ecs.DrainContainerInstance(cluster, inst.Name)
+					r, err := ecs.DrainContainerInstance(clust.ARN, inst.Name)
 					if err != nil {
-						fmt.Printf(p.Error("\n   \U00002717 Couldn't drain container instance: %v\n"), err)
+						fmt.Printf(p.Error("FAILED\n      \U00002937 \U00002717 Couldn't drain container instance: %v\n"), err)
+						continue
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 
 					// Get instance info
-					r1, err := ecs.GetClusterInstancesInfo(cluster, []string{inst.Name})
+					r1, err := ecs.GetClusterInstancesInfo(clust.ARN, []string{inst.Name})
 					if err != nil {
 						fmt.Printf(p.Error("\n   \U00002717 Couldn't get instance info: %v\n"), err)
 					}
@@ -613,7 +690,7 @@ ClustersMenu:
 						sleepTime := 10 * time.Second
 
 						// Get instance task list
-						tasks, err := ecs.GetInstanceTasks(cluster, inst.Name)
+						tasks, err := ecs.GetInstanceTasks(clust.ARN, inst.Name)
 
 						if err != nil {
 							fmt.Printf(p.Error("\n   \U00002717 Couldn't get list of tasks: %v\n"), err)
@@ -624,9 +701,14 @@ ClustersMenu:
 
 						// If it's test cluster, stop tasks, don't wait for drain to finish
 						if testCluster && runningTasksCount > 0 {
-							r, err = ecs.StopTask(cluster, tasks[0])
+							r, err = ecs.StopTask(clust.ARN, tasks[0])
 							fmt.Printf(p.Info("   \U0000276F Stop task %s: "), tasks[0])
-							fmt.Println(p.Yellow(r))
+
+							if err != nil {
+								fmt.Printf(p.Error("FAILED\n      \U00002937 \U00002717 Couldn't stop the task: %v\n"), err)
+							} else {
+								fmt.Println(p.Yellow(r))
+							}
 						} else {
 							fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Running tasks:"), p.Green(runningTasksCount), p.Yellow("0"))
 						}
@@ -647,9 +729,10 @@ ClustersMenu:
 					// Terminate instance
 					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID)
 					if err != nil {
-						fmt.Printf(p.Error("\n   \U00002717 Couldn't terminate instance %s (%s): %v\n"), inst.Name, inst.Ec2InstanceID, err)
+						fmt.Printf(p.Error("FAILED\n      \U00002937 \U00002717 Couldn't terminate instance: %v\n"), err)
+					} else {
+						fmt.Println(p.Yellow(r))
 					}
-					fmt.Println(p.Yellow(r))
 					fmt.Printf("   \U0000276F %s\n", p.Grey("Waiting for instance to shut down"))
 
 					loop = true
@@ -657,16 +740,16 @@ ClustersMenu:
 						sleepTime := 10 * time.Second
 
 						// Get cluster info
-						r, err := ecs.GetClusterInfo(cluster)
+						r, err := ecs.GetClustersInfo([]string{clust.ARN})
 
 						if err != nil {
 							fmt.Printf(p.Error("\n   \U00002717 Couldn't get cluster info: %v\n"), err)
 						}
 
-						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Registered instances count:"), p.Green(r.RegisteredInstancesCount), p.Yellow(registeredInstancesCount-1))
+						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Registered instances count:"), p.Green(r[0].RegisteredInstancesCount), p.Yellow(registeredInstancesCount-1))
 
-						// If registered instances count is decresed by one (one instance terminated), stop the loop
-						if r.RegisteredInstancesCount == registeredInstancesCount-1 {
+						// If registered instances count is decreased by one (one instance terminated), stop the loop
+						if r[0].RegisteredInstancesCount == registeredInstancesCount-1 {
 							loop = false
 						}
 
@@ -681,16 +764,16 @@ ClustersMenu:
 						sleepTime := 10 * time.Second
 
 						// Get cluster info
-						r, err := ecs.GetClusterInfo(cluster)
+						r, err := ecs.GetClustersInfo([]string{clust.ARN})
 
 						if err != nil {
 							fmt.Printf(p.Error("\n   \U00002717 Couldn't get cluster info: %v\n"), err)
 						}
 
-						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Registered instances count:"), p.Green(r.RegisteredInstancesCount), p.Yellow(registeredInstancesCount))
+						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Registered instances count:"), p.Green(r[0].RegisteredInstancesCount), p.Yellow(registeredInstancesCount))
 
 						// If registered instances count is back to initial value (all instances in cluster), stop the loop
-						if r.RegisteredInstancesCount >= registeredInstancesCount {
+						if r[0].RegisteredInstancesCount >= registeredInstancesCount {
 							loop = false
 						}
 
