@@ -2,6 +2,10 @@
 
 This file is used to list changes made in each version of ecs-manager.
 
+## 0.1.4 (July 09 2020)
+
+- Fix issue with terminating instance ([@mzdrale](https://gitlab.com/mzdrale))
+
 ## 0.1.3 (July 03 2020)
 
 - Return to menu if selected `N` when prompted ([@mzdrale](https://gitlab.com/mzdrale) - [issue #7](https://gitlab.com/mzdrale/ecs-manager/-/issues/7))

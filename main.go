@@ -474,7 +474,7 @@ ClustersMenu:
 					fmt.Printf(p.Info("   \U0000276F Terminate instance: "))
 
 					// Terminate instance
-					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID + "aaa")
+					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't terminate instance: %v"), err)
 					} else {
