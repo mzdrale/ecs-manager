@@ -4,11 +4,12 @@ VERSION ?= $(shell git describe --abbrev=0 --tags)
 .PHONY: build
 build:
 	@make build:linux
-	@make build:darwin
+	@make build:macos
 
-.PHONY: build\:darwin
-build\:darwin:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY}-${VERSION}-darwin-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
+.PHONY: build\:macos
+build\:macos:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY}-${VERSION}-macos-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o ${BINARY}-${VERSION}-macos-arm64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
 
 .PHONY: build\:linux
 build\:linux:
@@ -22,5 +23,5 @@ run:
 help:
 	@echo "build   		- Compile go code and provide binary for macOS and Linux"
 	@echo "build:linux 	- Compile go code and provide binary for Linux"
-	@echo "build:darwin - Compile go code and provide binary for macOS (Darwin)"
+	@echo "build:macos  - Compile go code and provide binary for macOS (amd64 and arm64)"
 	@echo "run     		- Compile and run go code"

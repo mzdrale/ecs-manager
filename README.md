@@ -2,6 +2,10 @@
 
 AWS ECS Manager tool written in [Go](https://golang.org).
 
+## Disclaimer
+
+Use this software on your onw risk. None of the authors or contributors, in any way whatsoever, can be responsible for your use of this software or for any damage it could cause.
+
 ## Install
 
 Go to [Releases page](https://gitlab.com/mzdrale/ecs-manager/-/releases) and download the latest binary version for your OS (look for link `ecs-manager-<version>-<platform>-amd64.tar.gz`). Linux and macOS (Darwin) amd64 are available at the moment. If you need to run this tool on some other platform, you can download source code and build binary.
@@ -41,6 +45,10 @@ cat > ~/.config/ecs-manager/config.toml <<EOF
 # finish, but force task stop to speed up the process
 test_clusters = [
 ]
+
+# Wait for task to start before draining next instance
+wait_for_task_on_instance_clusters = [
+]
 EOF
 ```
 
@@ -50,6 +58,14 @@ If you have some test ECS cluster and you don't want to wait for instance to fin
 test_clusters = [
     "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1",
     "arn:aws:ecs:us-east-1:222222222222:cluster/test-ecs-2"
+]
+```
+
+If you have a cluster that needs at least one task to run on instance before draining and terminating next instance ("Drain and terminate instances, one by one"), add cluster ARN into `wait_for_task_on_instance_clusters` list in `~/.config/ecs-manager/config.toml` configuration file. For example:
+
+```
+wait_for_task_on_instance_clusters = [
+    "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1"
 ]
 ```
 
