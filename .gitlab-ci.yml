@@ -42,7 +42,7 @@ stages:
       - project_cache/*.txt
 
 # Build Job - Linux (amd64)
-go_build_linux_amd64:
+go_build_linux:
   stage: go_build
   extends: .go_build
   variables:
