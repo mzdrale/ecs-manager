@@ -29,10 +29,10 @@ stages:
     - export VERSION="${CI_COMMIT_TAG}"
     # Save job id
     - test -d project_cache || mkdir project_cache
+    - if [ "${GOOS}" == "darwin" ]; then GOOS="macos"; fi
     - echo ${CI_JOB_ID} > project_cache/${GOOS}-${GOARCH}_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
-    - if [ "${GOOS}" == "darwin" ]; then GOOS="macos"; fi
     - make build:${GOOS}
     - tar czvf target/${CI_PROJECT_NAME}-${VERSION}-${GOOS}-${GOARCH}.tar.gz ${CI_PROJECT_NAME}-${VERSION}-${GOOS}-${GOARCH}
   artifacts:
