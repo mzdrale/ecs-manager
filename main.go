@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"ecs-manager-ng/common"
-	"ecs-manager-ng/ecs"
-	p "ecs-manager-ng/prompt"
+	"gitlab.com/mzdrale/ecs-manager/common"
+	"gitlab.com/mzdrale/ecs-manager/ecs"
 
+	p "gitlab.com/mzdrale/ecs-manager/prompt"
+
+	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -33,8 +35,9 @@ var (
 
 // Config variables
 var (
-	cTestClusters []string
-	aPrintVersion bool
+	cTestClusters        []string
+	cWaitForTaskClusters []string
+	aPrintVersion        bool
 )
 
 func init() {
@@ -74,6 +77,7 @@ func init() {
 
 	// Get configs from file
 	cTestClusters = viper.GetStringSlice("ecs.test_clusters")
+	cWaitForTaskClusters = viper.GetStringSlice("ecs.wait_for_task_on_instance_clusters")
 
 	// Get arguments
 	flag.BoolVarP(&aPrintVersion, "version", "V", false, "Print version")
@@ -112,6 +116,9 @@ MainMenu:
 ClustersMenu:
 	if result == "Clusters" {
 
+		// x, err := ecs.GetNewInstanceId("momcilovic-test-ecs-1-asg-1")
+		// fmt.Printf("%v\n", x)
+
 		// Get clusters list
 		clusters, err := ecs.GetClusters()
 
@@ -121,7 +128,7 @@ ClustersMenu:
 
 		// If no clusters found, return to main menu
 		if len(clusters) == 0 {
-			fmt.Println(p.Info("\U00002717 No instances in cluster."))
+			fmt.Println(p.Info("\U00002717 No clusters found."))
 			goto MainMenu
 		}
 
@@ -129,7 +136,6 @@ ClustersMenu:
 		if err != nil {
 			fmt.Printf(p.Error("\U00002717 Couldn't get list of ECS clusters: %v\n"), err)
 		}
-		// fmt.Printf("%#v\n", clustersInfo)
 
 		templates := &promptui.SelectTemplates{
 			Label:    "{{ . }}?",
@@ -170,31 +176,32 @@ ClustersMenu:
 
 		clust := clustersInfo[i]
 
-		// // Select cluster
-		// prompt := promptui.Select{
-		// 	Label: "[ Select cluster ]",
-		// 	Items: clusters,
-		// 	Size:  30,
-		// }
-
-		// _, cluster, err = prompt.Run()
-
-		// if err != nil {
-		// 	fmt.Printf(p.Error("\U00002717 Cluster selection failed!\n"))
-		// }
-
 		testCluster := false
+		waitForTaskCluster := false
 
 		if common.ElementInSlice(clust.ARN, cTestClusters) {
 			testCluster = true
-			fmt.Printf("\n==============================================================\n")
+			fmt.Printf(p.Red("\n==============================================================\n"))
 			fmt.Printf(p.Red("                          TEST CLUSTER \n"))
-			fmt.Printf("______________________________________________________________\n\n")
-			fmt.Printf(p.Red(" This cluster is listed in test_clusters list in config file. \n"))
+			fmt.Printf(p.Red("______________________________________________________________\n\n"))
+			fmt.Printf(p.Red(" This cluster is listed in test_clusters list in a config file. \n"))
 			fmt.Printf(p.Red(" It means if you chose to drain instances in this cluster, \n"))
 			fmt.Printf(p.Red(" this tool would not wait for drain to finish, but force stop \n"))
 			fmt.Printf(p.Red(" tasks one by one.\n"))
-			fmt.Printf("______________________________________________________________\n\n")
+			fmt.Printf(p.Red("______________________________________________________________\n\n"))
+		}
+
+		if common.ElementInSlice(clust.ARN, cWaitForTaskClusters) {
+			waitForTaskCluster = true
+			fmt.Printf(p.Magenta("\n==============================================================\n"))
+			fmt.Printf(p.Magenta("                     WAIT FOR TASK CLUSTER \n"))
+			fmt.Printf(p.Magenta("______________________________________________________________\n\n"))
+			fmt.Printf(p.Magenta(" This cluster is listed in wait_for_task_on_instance_clusters \n"))
+			fmt.Printf(p.Magenta(" list in a config file. It means if you chose to drain and \n"))
+			fmt.Printf(p.Magenta(" terminate instances in this cluster, this tool would wait for \n"))
+			fmt.Printf(p.Magenta(" a new instance to come up and start at least one task before \n"))
+			fmt.Printf(p.Magenta(" proceeding to the next one.\n"))
+			fmt.Printf(p.Magenta("______________________________________________________________\n\n"))
 		}
 
 		// Select cluster action
@@ -615,6 +622,7 @@ ClustersMenu:
 
 		// Drain and terminate instances, one by one
 		if result == "Drain and terminate instances, one by one" {
+
 			prompt := promptui.Prompt{
 				Label:     "Are you sure you want to do this",
 				IsConfirm: true,
@@ -643,6 +651,23 @@ ClustersMenu:
 				fmt.Printf(p.Error("\U00002717 Couldn't get list of excluded instances from %s: %v\n"), excludeFilename, err)
 			}
 
+			// If there are instances in excluded list, raise a warning
+			if len(excludedInstances) > 0 {
+				fmt.Printf(p.Warn("\U000026A0 Exclude list is not empty: %s\n"), strings.Join(excludedInstances, ", "))
+
+				prompt := promptui.Prompt{
+					Label:     "Do you want to exclude these instances",
+					IsConfirm: true,
+				}
+
+				result, err := prompt.Run()
+
+				if err != nil || result != "y" {
+					excludedInstances = []string{}
+				}
+
+			}
+
 			// Get cluster info
 			r, err := ecs.GetClustersInfo([]string{clust.ARN})
 			if err != nil {
@@ -658,9 +683,36 @@ ClustersMenu:
 					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
 
+				s := spinner.New(spinner.CharSets[11], 200*time.Millisecond)
+
 				// Iterate through instance list and update container agent
 				for i, inst := range instancesInfo {
 					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s (%s)\n"), i+1, len(instancesInfo), inst.Name, inst.Ec2InstanceID)
+
+					if waitForTaskCluster {
+						loop := true
+
+						// fmt.Printf("   \U0000276F %s ", p.Grey("Waiting for all instances to get in active state and start task(s)"))
+						s.Prefix = fmt.Sprintf("   \U0000276F %s ", p.Grey("Waiting for all instances to get in active state and start task(s)"))
+						s.Start()
+
+						for loop {
+							sleepTime := 10 * time.Second
+
+							if ecs.IsClusterReady(clust.ARN, true) {
+								s.Stop()
+								fmt.Printf("   \U0000276F %s \n", p.Grey("Waiting for all instances to get in active state and start task(s)"))
+								fmt.Printf("   \U0000276F %s \n", p.Grey("All instances are active and running at least one task"))
+								loop = false
+							}
+
+							if loop {
+								time.Sleep(sleepTime)
+							}
+						}
+						s.Stop()
+					}
+
 					fmt.Printf(p.Info("   \U0000276F Drain instance: "))
 
 					// Check if instance is excluded
@@ -735,6 +787,7 @@ ClustersMenu:
 					}
 					fmt.Printf("   \U0000276F %s\n", p.Grey("Waiting for instance to shut down"))
 
+					// Wait for number of registered instances to decrease by 1
 					loop = true
 					for loop {
 						sleepTime := 10 * time.Second
@@ -759,6 +812,7 @@ ClustersMenu:
 					}
 					fmt.Printf("\n   \U0000276F %s\n", p.Grey("Instance terminated, waiting for a new one"))
 
+					// Wait for number of registered instances to go back to initial value
 					loop = true
 					for loop {
 						sleepTime := 10 * time.Second
@@ -782,6 +836,7 @@ ClustersMenu:
 						}
 					}
 					fmt.Println()
+
 				}
 
 				// Calculate elapsed time and print it

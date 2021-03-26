@@ -1,7 +1,6 @@
 ### Global variables
 variables:
-  GO_VERSION: '1.14'
-  GOARCH: 'amd64'
+  GO_VERSION: '1.16'
 
 ### List of stages
 stages:
@@ -34,6 +33,7 @@ stages:
     # Build Go binary and create an artifact
     - mkdir target
     - make build:${GOOS}
+    - if [ "${GOOS}" == "darwin" ]; then GOOS="macos"; fi
     - tar czvf target/${CI_PROJECT_NAME}-${VERSION}-${GOOS}-${GOARCH}.tar.gz ${CI_PROJECT_NAME}-${VERSION}-${GOOS}-${GOARCH}
   artifacts:
     name: ${CI_PROJECT_NAME}
@@ -41,22 +41,35 @@ stages:
       - target/*.tar.gz
       - project_cache/*.txt
 
-# Build Job - Linux
+# Build Job - Linux (amd64)
 go_build_linux:
   stage: go_build
   extends: .go_build
   variables:
     GOOS: "linux"
+    GOARCH: "amd64"
   only:
     refs:
       - tags
 
-# Build Job - Darwin (macOS)
-go_build_darwin:
+# Build Job - macOS (amd64)
+go_build_macos_amd64:
   stage: go_build
   extends: .go_build
   variables:
     GOOS: "darwin"
+    GOARCH: "amd64"
+  only:
+    refs:
+      - tags
+
+# Build Job - macOS (arm64)
+go_build_macos_arm64:
+  stage: go_build
+  extends: .go_build
+  variables:
+    GOOS: "darwin"
+    GOARCH: "arm64"
   only:
     refs:
       - tags
@@ -68,11 +81,13 @@ release_go_binaries:
   extends: .shared
   dependencies:
     - go_build_linux
-    - go_build_darwin
+    - go_build_macos_amd64
+    - go_build_macos_arm64
   script:
     # Environment variables
     - export LINUX_BUILD_JOB_ID=$(cat project_cache/linux-${GOARCH}_job_id.txt)
-    - export DARWIN_BUILD_JOB_ID=$(cat project_cache/darwin-${GOARCH}_job_id.txt)
+    - export MACOS_AMD64_BUILD_JOB_ID=$(cat project_cache/macos-${GOARCH}_job_id.txt)
+    - export MACOS_ARM64_BUILD_JOB_ID=$(cat project_cache/macos-${GOARCH}_job_id.txt)
     # Create a release
     - |
       curl -sSL -X POST \
@@ -89,8 +104,12 @@ release_go_binaries:
                 "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${LINUX_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-${GOARCH}.tar.gz"'"
               },
               {
-                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-${GOARCH}.tar.gz"'",
-                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${DARWIN_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-${GOARCH}.tar.gz"'"
+                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-macos-${GOARCH}.tar.gz"'",
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${MACOS_AMD64_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-macos-${GOARCH}.tar.gz"'"
+              },
+              {
+                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-macos-${GOARCH}.tar.gz"'",
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${MACOS_ARM64_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-macos-${GOARCH}.tar.gz"'"
               }
             ]
           }

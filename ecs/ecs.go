@@ -2,6 +2,7 @@ package ecs
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -167,6 +168,44 @@ func GetClusterInstancesInfo(cluster string, instances []string) ([]Instance, er
 	return instancesInfo, err
 }
 
+// IsClusterReady - check if cluster is ready,
+// all instances are in ACTIVE state and if mustHaveRunningTasks is specified,
+// all instances must have at least one running task
+func IsClusterReady(arn string, mustHaveRunningTasks bool) bool {
+	// Get cluster info
+	clusterInfo, err := GetClustersInfo([]string{arn})
+	if err != nil {
+		fmt.Printf("Failed to get cluster info: %s\n", err)
+		os.Exit(1)
+	}
+
+	// Get cluster instances list
+	instances, err := GetClusterInstances(arn)
+	if err != nil {
+		fmt.Printf("Failed to get cluster instances: %s\n", err)
+		os.Exit(1)
+	}
+
+	// Get cluster instances info
+	instancesInfo, err := GetClusterInstancesInfo(clusterInfo[0].Name, instances)
+	if err != nil {
+		fmt.Printf("\nFailed to get cluster instances info: %s\n", err)
+		os.Exit(1)
+	}
+
+	for _, inst := range instancesInfo {
+		if inst.Status != "ACTIVE" {
+			return false
+		}
+
+		if mustHaveRunningTasks && inst.RunningTasksCount < 1 {
+			return false
+		}
+	}
+
+	return true
+}
+
 // StopTask - stop task
 func StopTask(cluster string, task string) (string, error) {
 	svc := ecs.New(session.New())
@@ -235,6 +274,36 @@ func GetInstanceTasks(cluster string, instance string) ([]string, error) {
 
 	return tasks, nil
 }
+
+// // GetNewInstanceId - get new instance id started by autoscaling group
+// func GetNewInstanceId(asgName string) ([]string, error) {
+// 	instances := []string{}
+
+// 	svc := autoscaling.New(session.New())
+
+// 	input := &autoscaling.DescribeScalingActivitiesInput{
+// 		AutoScalingGroupName: aws.String(asgName),
+// 	}
+
+// 	result, err := svc.DescribeScalingActivities(input)
+
+// 	// fmt.Printf("%v\n", result)
+
+// 	if err != nil {
+// 		return instances, err
+// 	}
+
+// 	for _, activity := range result.Activities {
+// 		re := regexp.MustCompile(`^Launching a new EC2 instance: (i-.*)$`)
+// 		m := re.FindStringSubmatch(*activity.Description)
+// 		if len(m) > 0 {
+// 			instances = append(instances, m[1])
+// 		}
+
+// 	}
+
+// 	return instances, nil
+// }
 
 // ActivateContainerInstance drains instance
 func ActivateContainerInstance(cluster string, instance string) (string, error) {

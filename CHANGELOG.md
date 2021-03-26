@@ -2,6 +2,14 @@
 
 This file is used to list changes made in each version of ecs-manager.
 
+## 0.1.5 (March 23 2021)
+
+- Warn if "excluded list" is not empty ([@mzdrale](https://gitlab.com/mzdrale) - [issue #11](https://gitlab.com/mzdrale/ecs-manager/-/issues/11))
+- Add option to wait for at least one task to start on a new instance before proceeding to the next one when doing "Drain and terminate instance, one by one" ([@mzdrale](https://gitlab.com/mzdrale) - [issue #10](https://gitlab.com/mzdrale/ecs-manager/-/issues/10))
+- Rename `darwin` platform to `macos` ([@mzdrale](https://gitlab.com/mzdrale) - [issue #9](https://gitlab.com/mzdrale/ecs-manager/-/issues/9))
+- Add support for macOS on Apple Silicon ([@mzdrale](https://gitlab.com/mzdrale) - [issue #8](https://gitlab.com/mzdrale/ecs-manager/-/issues/8))
+- Minor fixes
+
 ## 0.1.4 (July 09 2020)
 
 - Fix issue with terminating instance ([@mzdrale](https://gitlab.com/mzdrale))
