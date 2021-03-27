@@ -8,23 +8,24 @@ Use this software on your onw risk. None of the authors or contributors, in any 
 
 ## Install
 
-Go to [Releases page](https://gitlab.com/mzdrale/ecs-manager/-/releases) and download the latest binary version for your OS (look for link `ecs-manager-<version>-<platform>-amd64.tar.gz`). Linux and macOS (Darwin) amd64 are available at the moment. If you need to run this tool on some other platform, you can download source code and build binary.
-In this README, we will use `ecs-manager-0.1.0-darwin-amd64.tar.gz` as example.
+Go to [Releases page](https://gitlab.com/mzdrale/ecs-manager/-/releases) and download the latest binary version for your OS (look for link `ecs-manager-<version>-<platform>-amd64.tar.gz`). Linux amd64, macOS amd64 and macOS arm64 are available at the moment. If you need to run this tool on some other platform, you can download source code and build binary.
+In this README, we will use `ecs-manager-0.1.5
+-macos-amd64.tar.gz` as example.
 
 ```bash
-wget https://gitlab.com/mzdrale/ecs-manager/-/jobs/593194738/artifacts/raw/target/ecs-manager-0.1.0-darwin-amd64.tar.gz
+❯ wget https://gitlab.com/mzdrale/ecs-manager/-/jobs/593194738/artifacts/raw/target/ecs-manager-0.1.5-macos-amd64.tar.gz
 ```
 
 Uncompress archive:
 ```bash
-tar xzvf ecs-manager-0.1.0-darwin-amd64.tar.gz
+❯ tar xzvf ecs-manager-0.1.5-macos-amd64.tar.gz
 ```
 
 Copy binary to some directory in `$PATH`, for example `/usr/local/bin`:
 
 ```bash
-mv ecs-manager-0.1.0-darwin-amd64 /usr/local/bin/ecs-manager
-chmod 755 /usr/local/bin/ecs-manager
+❯ mv ecs-manager-0.1.5-macos-amd64 /usr/local/bin/ecs-manager
+❯ chmod 755 /usr/local/bin/ecs-manager
 ```
 
 ## Configure
@@ -32,13 +33,13 @@ chmod 755 /usr/local/bin/ecs-manager
 Create configuration directory:
 
 ```bash
-mkdir -p ~/.config/ecs-manager
+❯ mkdir -p ~/.config/ecs-manager
 ```
 
 Create configuration file:
 
 ```bash
-cat > ~/.config/ecs-manager/config.toml <<EOF
+❯ cat > ~/.config/ecs-manager/config.toml <<EOF
 [ecs]
 
 # When draining instances in these clusters, we'll not wait drain to
