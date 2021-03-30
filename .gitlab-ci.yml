@@ -29,6 +29,7 @@ stages:
     - export VERSION="${CI_COMMIT_TAG}"
     # Save job id
     - test -d project_cache || mkdir project_cache
+    - if [ "${GOOS}" == "darwin" ]; then GOOS="macos"; fi
     - echo ${CI_JOB_ID} > project_cache/${GOOS}-${GOARCH}_job_id.txt
     # Build Go binary and create an artifact
     - mkdir target
@@ -85,9 +86,9 @@ release_go_binaries:
     - go_build_macos_arm64
   script:
     # Environment variables
-    - export LINUX_BUILD_JOB_ID=$(cat project_cache/linux-${GOARCH}_job_id.txt)
-    - export MACOS_AMD64_BUILD_JOB_ID=$(cat project_cache/macos-${GOARCH}_job_id.txt)
-    - export MACOS_ARM64_BUILD_JOB_ID=$(cat project_cache/macos-${GOARCH}_job_id.txt)
+    - export LINUX_BUILD_JOB_ID=$(cat project_cache/linux-amd64_job_id.txt)
+    - export MACOS_AMD64_BUILD_JOB_ID=$(cat project_cache/macos-amd64_job_id.txt)
+    - export MACOS_ARM64_BUILD_JOB_ID=$(cat project_cache/macos-arm64_job_id.txt)
     # Create a release
     - |
       curl -sSL -X POST \
