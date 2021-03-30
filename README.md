@@ -13,7 +13,7 @@ In this README, we will use `ecs-manager-0.1.5
 -macos-amd64.tar.gz` as example.
 
 ```bash
-❯ wget https://gitlab.com/mzdrale/ecs-manager/-/jobs/593194738/artifacts/raw/target/ecs-manager-0.1.5-macos-amd64.tar.gz
+❯ wget https://gitlab.com/mzdrale/ecs-manager/-/jobs/1139578084/artifacts/raw/target/ecs-manager-0.1.5-macos-amd64.tar.gz
 ```
 
 Uncompress archive:
