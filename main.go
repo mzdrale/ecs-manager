@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/mzdrale/ecs-manager/aws"
 	"gitlab.com/mzdrale/ecs-manager/common"
-	"gitlab.com/mzdrale/ecs-manager/ecs"
 
 	p "gitlab.com/mzdrale/ecs-manager/prompt"
 
@@ -27,10 +27,10 @@ var (
 )
 
 var (
-	result        string
-	cluster       string
-	instancesInfo []ecs.Instance
-	err           error
+	result           string
+	cluster          string
+	ecsInstancesInfo []aws.EcsInstance
+	err              error
 )
 
 // Config variables
@@ -116,11 +116,8 @@ MainMenu:
 ClustersMenu:
 	if result == "Clusters" {
 
-		// x, err := ecs.GetNewInstanceId("momcilovic-test-ecs-1-asg-1")
-		// fmt.Printf("%v\n", x)
-
 		// Get clusters list
-		clusters, err := ecs.GetClusters()
+		clusters, err := aws.GetEcsClusters()
 
 		if err != nil {
 			fmt.Printf(p.Error("\U00002717 Couldn't get list of ECS clusters: %v\n"), err)
@@ -132,7 +129,7 @@ ClustersMenu:
 			goto MainMenu
 		}
 
-		clustersInfo, err := ecs.GetClustersInfo(clusters)
+		clustersInfo, err := aws.GetEcsClustersInfo(clusters)
 		if err != nil {
 			fmt.Printf(p.Error("\U00002717 Couldn't get list of ECS clusters: %v\n"), err)
 		}
@@ -228,14 +225,14 @@ ClustersMenu:
 	InstancesMenu:
 		if result == "Instances" {
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(clust.ARN)
+			instances, err := aws.GetEcsClusterInstances(clust.ARN)
 
 			if err != nil {
 				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 			}
 
 			if len(instances) > 0 {
-				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
+				ecsInstancesInfo, err = aws.GetEcsClusterInstancesInfo(clust.ARN, instances)
 
 				if err != nil {
 					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
@@ -259,7 +256,7 @@ ClustersMenu:
 				}
 
 				searcher := func(input string, index int) bool {
-					inst := instancesInfo[index]
+					inst := ecsInstancesInfo[index]
 					name := strings.Replace(strings.ToLower(inst.Name), " ", "", -1)
 					input = strings.Replace(strings.ToLower(input), " ", "", -1)
 
@@ -268,7 +265,7 @@ ClustersMenu:
 
 				prompt = promptui.Select{
 					Label:     "Select instance",
-					Items:     instancesInfo,
+					Items:     ecsInstancesInfo,
 					Templates: templates,
 					Size:      10,
 					Searcher:  searcher,
@@ -280,7 +277,7 @@ ClustersMenu:
 					fmt.Printf(p.Error("\U00002717 Prompt failed %v\n"), err)
 				}
 
-				inst := instancesInfo[i]
+				inst := ecsInstancesInfo[i]
 
 				prompt = promptui.Select{
 					Label: "[ Select action ]",
@@ -309,7 +306,7 @@ ClustersMenu:
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Update ECS Agent on %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, err := ecs.UpdateContainerAgent(clust.ARN, inst.Name)
+					r, err := aws.UpdateEcsContainerAgent(clust.ARN, inst.Name)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't update container agent: %v"), err)
 					} else {
@@ -330,7 +327,7 @@ ClustersMenu:
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Activate instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, err := ecs.ActivateContainerInstance(clust.ARN, inst.ARN)
+					r, err := aws.ActivateEcsContainerInstance(clust.ARN, inst.ARN)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't activate instance: %v"), err)
 					} else {
@@ -350,7 +347,7 @@ ClustersMenu:
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Drain instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, err := ecs.DrainContainerInstance(clust.ARN, inst.ARN)
+					r, err := aws.DrainEcsContainerInstance(clust.ARN, inst.ARN)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't drain instance: %v"), err)
 					} else {
@@ -382,7 +379,7 @@ ClustersMenu:
 					startTime := time.Now()
 
 					fmt.Printf(p.Info("\U0001F5A5  Terminate instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, err := ecs.TerminateContainerInstance(inst.Ec2InstanceID)
+					r, err := aws.TerminateEc2Instance(inst.Ec2InstanceID)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't terminate instance: %v"), err)
 					} else {
@@ -417,7 +414,7 @@ ClustersMenu:
 
 					// Drain instance
 					fmt.Printf(p.Info("\U0001F6B0 Drain instance %s (%s): "), inst.Name, inst.Ec2InstanceID)
-					r, err := ecs.DrainContainerInstance(clust.ARN, inst.Name)
+					r, err := aws.DrainEcsContainerInstance(clust.ARN, inst.Name)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't drain container instance: %v\n"), err)
 						goto InstancesMenu
@@ -426,7 +423,7 @@ ClustersMenu:
 					}
 
 					// Get instance info
-					r1, err := ecs.GetClusterInstancesInfo(clust.ARN, []string{inst.Name})
+					r1, err := aws.GetEcsClusterInstancesInfo(clust.ARN, []string{inst.Name})
 					if err != nil {
 						fmt.Printf(p.Error("\n   \U00002717 Couldn't get instance info: %v\n"), err)
 					}
@@ -438,7 +435,7 @@ ClustersMenu:
 						sleepTime := 10 * time.Second
 
 						// Get instance task list
-						tasks, err := ecs.GetInstanceTasks(clust.ARN, inst.Name)
+						tasks, err := aws.GetEcsInstanceTasks(clust.ARN, inst.Name)
 
 						if err != nil {
 							fmt.Printf(p.Error("\n   \U00002717 Couldn't get list of tasks: %v\n"), err)
@@ -454,7 +451,7 @@ ClustersMenu:
 
 						// If it's test cluster, stop tasks, don't wait for drain to finish
 						if testCluster && runningTasksCount > 0 {
-							r, err = ecs.StopTask(clust.ARN, tasks[0])
+							r, err = aws.StopEcsTask(clust.ARN, tasks[0])
 							fmt.Printf(p.Info("   \U0000276F Stop task %s: "), tasks[0])
 							if err != nil {
 								fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't stop the task: %v\n"), err)
@@ -481,7 +478,7 @@ ClustersMenu:
 					fmt.Printf(p.Info("   \U0000276F Terminate instance: "))
 
 					// Terminate instance
-					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID)
+					r, err = aws.TerminateEc2Instance(inst.Ec2InstanceID)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't terminate instance: %v"), err)
 					} else {
@@ -527,7 +524,7 @@ ClustersMenu:
 			startTime := time.Now()
 
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(clust.ARN)
+			instances, err := aws.GetEcsClusterInstances(clust.ARN)
 
 			if err != nil {
 				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n", clust.Name, err))
@@ -535,7 +532,7 @@ ClustersMenu:
 
 			if len(instances) > 0 {
 
-				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
+				ecsInstancesInfo, err = aws.GetEcsClusterInstancesInfo(clust.ARN, instances)
 				if err != nil {
 					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
@@ -550,7 +547,7 @@ ClustersMenu:
 				}
 
 				// Iterate through instances and write to file
-				for _, inst := range instancesInfo {
+				for _, inst := range ecsInstancesInfo {
 					line := fmt.Sprintf("%s (EC2:%s, AMI:%s)\n", inst.Name, inst.Ec2InstanceID, inst.AMI)
 					_, err := f.WriteString(line)
 					if err != nil {
@@ -580,22 +577,22 @@ ClustersMenu:
 			startTime := time.Now()
 
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(clust.ARN)
+			instances, err := aws.GetEcsClusterInstances(clust.ARN)
 
 			if err != nil {
 				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 			}
 
 			if len(instances) > 0 {
-				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
+				ecsInstancesInfo, err = aws.GetEcsClusterInstancesInfo(clust.ARN, instances)
 				if err != nil {
 					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
 
 				// Iterate through instance list and update container agent
-				for i, inst := range instancesInfo {
-					fmt.Printf(p.Info("\U0001F5A5  Update agent on %s (%s) [%02d/%02d]: "), inst.Name, inst.Ec2InstanceID, i+1, len(instancesInfo))
-					r, err := ecs.UpdateContainerAgent(clust.ARN, inst.Name)
+				for i, inst := range ecsInstancesInfo {
+					fmt.Printf(p.Info("\U0001F5A5  Update agent on %s (%s) [%02d/%02d]: "), inst.Name, inst.Ec2InstanceID, i+1, len(ecsInstancesInfo))
+					r, err := aws.UpdateEcsContainerAgent(clust.ARN, inst.Name)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n    \U00002937 \U00002717 Couldn't update container agent: %v\n"), err)
 					} else {
@@ -603,7 +600,7 @@ ClustersMenu:
 					}
 
 					// Let's wait a few seconds before proceeding to next instance
-					if r == "PENDING" && i < len(instancesInfo)-1 {
+					if r == "PENDING" && i < len(ecsInstancesInfo)-1 {
 						time.Sleep(10 * time.Second)
 					}
 				}
@@ -637,7 +634,7 @@ ClustersMenu:
 			startTime := time.Now()
 
 			// Get cluster instances
-			instances, err := ecs.GetClusterInstances(clust.ARN)
+			instances, err := aws.GetEcsClusterInstances(clust.ARN)
 
 			if err != nil {
 				fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
@@ -669,7 +666,7 @@ ClustersMenu:
 			}
 
 			// Get cluster info
-			r, err := ecs.GetClustersInfo([]string{clust.ARN})
+			r, err := aws.GetEcsClustersInfo([]string{clust.ARN})
 			if err != nil {
 				fmt.Printf(p.Error("\U00002717 Couldn't get cluster info: %v\n"), clust.Name, err)
 			}
@@ -678,7 +675,7 @@ ClustersMenu:
 
 			// Iterate over instances
 			if len(instances) > 0 {
-				instancesInfo, err = ecs.GetClusterInstancesInfo(clust.ARN, instances)
+				ecsInstancesInfo, err = aws.GetEcsClusterInstancesInfo(clust.ARN, instances)
 				if err != nil {
 					fmt.Printf(p.Error("\U00002717 Couldn't get list of instances in ECS cluster %s: %v\n"), clust.Name, err)
 				}
@@ -686,20 +683,19 @@ ClustersMenu:
 				s := spinner.New(spinner.CharSets[11], 200*time.Millisecond)
 
 				// Iterate through instance list and update container agent
-				for i, inst := range instancesInfo {
-					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s (%s)\n"), i+1, len(instancesInfo), inst.Name, inst.Ec2InstanceID)
+				for i, inst := range ecsInstancesInfo {
+					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s (%s)\n"), i+1, len(ecsInstancesInfo), inst.Name, inst.Ec2InstanceID)
 
 					if waitForTaskCluster {
 						loop := true
 
-						// fmt.Printf("   \U0000276F %s ", p.Grey("Waiting for all instances to get in active state and start task(s)"))
 						s.Prefix = fmt.Sprintf("   \U0000276F %s ", p.Grey("Waiting for all instances to get in active state and start task(s)"))
 						s.Start()
 
 						for loop {
 							sleepTime := 10 * time.Second
 
-							if ecs.IsClusterReady(clust.ARN, true) {
+							if aws.IsEcsClusterReady(clust.ARN, true) {
 								s.Stop()
 								fmt.Printf("   \U0000276F %s \n", p.Grey("Waiting for all instances to get in active state and start task(s)"))
 								fmt.Printf("   \U0000276F %s \n", p.Grey("All instances are active and running at least one task"))
@@ -722,7 +718,7 @@ ClustersMenu:
 					}
 
 					// Drain instance
-					r, err := ecs.DrainContainerInstance(clust.ARN, inst.Name)
+					r, err := aws.DrainEcsContainerInstance(clust.ARN, inst.Name)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n      \U00002937 \U00002717 Couldn't drain container instance: %v\n"), err)
 						continue
@@ -731,7 +727,7 @@ ClustersMenu:
 					}
 
 					// Get instance info
-					r1, err := ecs.GetClusterInstancesInfo(clust.ARN, []string{inst.Name})
+					r1, err := aws.GetEcsClusterInstancesInfo(clust.ARN, []string{inst.Name})
 					if err != nil {
 						fmt.Printf(p.Error("\n   \U00002717 Couldn't get instance info: %v\n"), err)
 					}
@@ -742,7 +738,7 @@ ClustersMenu:
 						sleepTime := 10 * time.Second
 
 						// Get instance task list
-						tasks, err := ecs.GetInstanceTasks(clust.ARN, inst.Name)
+						tasks, err := aws.GetEcsInstanceTasks(clust.ARN, inst.Name)
 
 						if err != nil {
 							fmt.Printf(p.Error("\n   \U00002717 Couldn't get list of tasks: %v\n"), err)
@@ -753,7 +749,7 @@ ClustersMenu:
 
 						// If it's test cluster, stop tasks, don't wait for drain to finish
 						if testCluster && runningTasksCount > 0 {
-							r, err = ecs.StopTask(clust.ARN, tasks[0])
+							r, err = aws.StopEcsTask(clust.ARN, tasks[0])
 							fmt.Printf(p.Info("   \U0000276F Stop task %s: "), tasks[0])
 
 							if err != nil {
@@ -779,30 +775,24 @@ ClustersMenu:
 					fmt.Printf(p.Info("   \U0000276F Terminate instance: "))
 
 					// Terminate instance
-					r, err = ecs.TerminateContainerInstance(inst.Ec2InstanceID)
+					r, err = aws.TerminateEc2Instance(inst.Ec2InstanceID)
 					if err != nil {
 						fmt.Printf(p.Error("FAILED\n      \U00002937 \U00002717 Couldn't terminate instance: %v\n"), err)
 					} else {
 						fmt.Println(p.Yellow(r))
 					}
-					fmt.Printf("   \U0000276F %s\n", p.Grey("Waiting for instance to shut down"))
+
+					s.Prefix = fmt.Sprintf("   \U0000276F %s ", p.Grey("Waiting for instance to shut down"))
+					s.Start()
 
 					// Wait for number of registered instances to decrease by 1
 					loop = true
 					for loop {
 						sleepTime := 10 * time.Second
 
-						// Get cluster info
-						r, err := ecs.GetClustersInfo([]string{clust.ARN})
-
-						if err != nil {
-							fmt.Printf(p.Error("\n   \U00002717 Couldn't get cluster info: %v\n"), err)
-						}
-
-						fmt.Printf("\r   \U0000276F %s %s (need %s)  ", p.Grey("Registered instances count:"), p.Green(r[0].RegisteredInstancesCount), p.Yellow(registeredInstancesCount-1))
-
-						// If registered instances count is decreased by one (one instance terminated), stop the loop
-						if r[0].RegisteredInstancesCount == registeredInstancesCount-1 {
+						if aws.IsEc2InstanceTerminated(inst.Ec2InstanceID) {
+							s.Stop()
+							fmt.Printf("   \U0000276F %s \n", p.Grey("Waiting for instance to shut down"))
 							loop = false
 						}
 
@@ -810,7 +800,8 @@ ClustersMenu:
 							time.Sleep(sleepTime)
 						}
 					}
-					fmt.Printf("\n   \U0000276F %s\n", p.Grey("Instance terminated, waiting for a new one"))
+					fmt.Printf("   \U0000276F %s\n", p.Grey("Instance terminated, waiting for a new one"))
+					s.Stop()
 
 					// Wait for number of registered instances to go back to initial value
 					loop = true
@@ -818,7 +809,7 @@ ClustersMenu:
 						sleepTime := 10 * time.Second
 
 						// Get cluster info
-						r, err := ecs.GetClustersInfo([]string{clust.ARN})
+						r, err := aws.GetEcsClustersInfo([]string{clust.ARN})
 
 						if err != nil {
 							fmt.Printf(p.Error("\n   \U00002717 Couldn't get cluster info: %v\n"), err)
