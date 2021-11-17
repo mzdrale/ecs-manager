@@ -6,6 +6,20 @@ AWS ECS Manager tool written in [Go](https://golang.org).
 
 Use this software on your onw risk. None of the authors or contributors, in any way whatsoever, can be responsible for your use of this software or for any damage it could cause.
 
+
+<br/>
+<div class="warning" style='padding:0.1em; background-color:#ffd4d4; color:#000000'>
+<span>
+<p style='margin-top:1em; margin-left:1em; text-align:left; color: #cc0000'>
+<b>IMPORTANT NOTE</b></p>
+<p style='margin-left:1em;'>
+Starting with version 0.2.0, ecs-manager is using YAML instead of TOML configuration file format. If you used ecs-manager version prior to 0.2.0, you would need to create new config.yaml file.
+</p>
+</span>
+</div>
+<br/><br/>
+
+
 ## Install
 
 Go to [Releases page](https://gitlab.com/mzdrale/ecs-manager/-/releases) and download the latest binary version for your OS (look for link `ecs-manager-<version>-<platform>-amd64.tar.gz`). Linux amd64, macOS amd64 and macOS arm64 are available at the moment. If you need to run this tool on some other platform, you can download source code and build binary.
