@@ -39,36 +39,47 @@ Create configuration directory:
 Create configuration file:
 
 ```bash
-❯ cat > ~/.config/ecs-manager/config.toml <<EOF
-[ecs]
+❯ cat > ~/.config/ecs-manager/config.yaml <<EOF
+ecs:
 
-# When draining instances in these clusters, we'll not wait drain to
-# finish, but force task stop to speed up the process
-test_clusters = [
-]
+  ### Example
+  #
+  # "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1":
+  #   test_cluster: true
+  #   wait_for_task: true
 
-# Wait for task to start before draining next instance
-wait_for_task_on_instance_clusters = [
-]
 EOF
 ```
 
-If you have some test ECS cluster and you don't want to wait for instance to finish draining tasks when in DRAINING mode, just add cluster ARN into `test_clusters` list in `~/.config/ecs-manager/config.toml` configuration file. For example:
+For each cluster create config under `ecs:` in `~/.config/ecs-manager/config.yaml`. For example:
+
+```yaml
+ecs:
+
+  ### Example
+  #
+  # "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1":
+  #   test_cluster: true
+  #   wait_for_task: true
+
+  "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1":
+    test_cluster: false
+    wait_for_task: true
+
+  "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-2":
+    test_cluster: true
+    wait_for_task: false
+
+  "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-3":
+    test_cluster: true
+    wait_for_task: true
 
 ```
-test_clusters = [
-    "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1",
-    "arn:aws:ecs:us-east-1:222222222222:cluster/test-ecs-2"
-]
-```
 
-If you have a cluster that needs at least one task to run on instance before draining and terminating next instance ("Drain and terminate instances, one by one"), add cluster ARN into `wait_for_task_on_instance_clusters` list in `~/.config/ecs-manager/config.toml` configuration file. For example:
+When `test_cluster` is set to `true`, it means if you chose to drain instances in cluster, this tool would not wait for drain to finish, but force stop tasks one by one.
 
-```
-wait_for_task_on_instance_clusters = [
-    "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1"
-]
-```
+When `wait_for_task` is set to `true`, it means if you chose to drain and terminate instances in cluster, this tool would wait for a new instance to come up and start at least one task before proceeding to the next one.
+
 
 ## Usage
 
