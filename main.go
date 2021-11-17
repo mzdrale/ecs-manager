@@ -35,9 +35,10 @@ var (
 
 // Config variables
 var (
-	cTestClusters        []string
-	cWaitForTaskClusters []string
-	aPrintVersion        bool
+	// cTestClusters        []string
+	// cWaitForTaskClusters []string
+	cTestCluster  bool
+	aPrintVersion bool
 )
 
 func init() {
@@ -55,13 +56,9 @@ func init() {
 	// Configuration dir
 	cfgDir = filepath.Join(home, ".config/ecs-manager")
 
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		viper.SetConfigName("config")
-		viper.SetConfigType("toml")
-		viper.AddConfigPath(cfgDir)
-	}
+	viper.SetConfigName("config.yaml")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(cfgDir)
 
 	// Try to read config
 	if err := viper.ReadInConfig(); err != nil {
@@ -74,10 +71,6 @@ func init() {
 		fmt.Printf("Usage: \n")
 		flag.PrintDefaults()
 	}
-
-	// Get configs from file
-	cTestClusters = viper.GetStringSlice("ecs.test_clusters")
-	cWaitForTaskClusters = viper.GetStringSlice("ecs.wait_for_task_on_instance_clusters")
 
 	// Get arguments
 	flag.BoolVarP(&aPrintVersion, "version", "V", false, "Print version")
@@ -173,31 +166,29 @@ ClustersMenu:
 
 		clust := clustersInfo[i]
 
-		testCluster := false
-		waitForTaskCluster := false
+		testCluster := viper.GetBool(fmt.Sprintf("ecs.%s.test_cluster", clust.ARN))
+		waitForTaskCluster := viper.GetBool(fmt.Sprintf("ecs.%s.wait_for_task", clust.ARN))
 
-		if common.ElementInSlice(clust.ARN, cTestClusters) {
-			testCluster = true
+		if testCluster {
 			fmt.Printf(p.Red("\n==============================================================\n"))
 			fmt.Printf(p.Red("                          TEST CLUSTER \n"))
 			fmt.Printf(p.Red("______________________________________________________________\n\n"))
-			fmt.Printf(p.Red(" This cluster is listed in test_clusters list in a config file. \n"))
+			fmt.Printf(p.Red(" This cluster is marked as test cluster (check config file). \n"))
 			fmt.Printf(p.Red(" It means if you chose to drain instances in this cluster, \n"))
 			fmt.Printf(p.Red(" this tool would not wait for drain to finish, but force stop \n"))
 			fmt.Printf(p.Red(" tasks one by one.\n"))
 			fmt.Printf(p.Red("______________________________________________________________\n\n"))
 		}
 
-		if common.ElementInSlice(clust.ARN, cWaitForTaskClusters) {
-			waitForTaskCluster = true
+		if waitForTaskCluster {
 			fmt.Printf(p.Magenta("\n==============================================================\n"))
 			fmt.Printf(p.Magenta("                     WAIT FOR TASK CLUSTER \n"))
 			fmt.Printf(p.Magenta("______________________________________________________________\n\n"))
-			fmt.Printf(p.Magenta(" This cluster is listed in wait_for_task_on_instance_clusters \n"))
-			fmt.Printf(p.Magenta(" list in a config file. It means if you chose to drain and \n"))
-			fmt.Printf(p.Magenta(" terminate instances in this cluster, this tool would wait for \n"))
-			fmt.Printf(p.Magenta(" a new instance to come up and start at least one task before \n"))
-			fmt.Printf(p.Magenta(" proceeding to the next one.\n"))
+			fmt.Printf(p.Magenta(" This cluster is configured to wait for task (check config file). \n"))
+			fmt.Printf(p.Magenta(" It means if you chose to drain and terminate instances\n"))
+			fmt.Printf(p.Magenta(" in this cluster, this tool would wait for a new instance\n"))
+			fmt.Printf(p.Magenta(" to come up and start at least one task before proceeding\n"))
+			fmt.Printf(p.Magenta(" to the next one.\n"))
 			fmt.Printf(p.Magenta("______________________________________________________________\n\n"))
 		}
 
@@ -682,7 +673,7 @@ ClustersMenu:
 
 				s := spinner.New(spinner.CharSets[11], 200*time.Millisecond)
 
-				// Iterate through instance list and update container agent
+				// Iterate through instance list and drain and terminate instances
 				for i, inst := range ecsInstancesInfo {
 					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s (%s)\n"), i+1, len(ecsInstancesInfo), inst.Name, inst.Ec2InstanceID)
 
