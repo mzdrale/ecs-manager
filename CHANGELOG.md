@@ -2,9 +2,13 @@
 
 This file is used to list changes made in each version of ecs-manager.
 
+## 0.2.1 (December 14 2021)
+
+- Get memory and CPU usage ([@mzdrale](https://gitlab.com/mzdrale))
+
 ## 0.2.0 (November 17 2021)
 
-- [Breaking Change] Change configuration file format from TOML to YAML - ([@mzdrale](https://gitlab.com/mzdrale) - [issue #13](https://gitlab.com/mzdrale/ecs-manager/-/issues/13))
+- [Breaking Change] Change configuration file format from TOML to YAML ([@mzdrale](https://gitlab.com/mzdrale) - [issue #13](https://gitlab.com/mzdrale/ecs-manager/-/issues/13))
 
 ## 0.1.5 (March 30 2021)
 
