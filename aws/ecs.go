@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -156,6 +157,16 @@ func GetEcsClusterInstancesInfo(cluster string, instances []string) ([]EcsInstan
 		instanceInfo.AgentVersion = *ci.VersionInfo.AgentVersion
 		instanceInfo.DockerVersion = strings.Replace(*ci.VersionInfo.DockerVersion, "DockerVersion: ", "", -1)
 
+		for _, res := range ci.RemainingResources {
+			if *res.Name == "CPU" {
+				instanceInfo.RemainingCPU = *res.IntegerValue
+			}
+			if *res.Name == "MEMORY" {
+				instanceInfo.RemainingMemory = *res.IntegerValue
+			}
+
+		}
+
 		for _, att := range ci.Attributes {
 			if *att.Name == "ecs.ami-id" {
 				instanceInfo.AMI = *att.Value
@@ -166,6 +177,44 @@ func GetEcsClusterInstancesInfo(cluster string, instances []string) ([]EcsInstan
 	}
 
 	return instancesInfo, err
+}
+
+// GetEcsClusterArnByName - get ECS cluster ARN by cluster name
+func GetEcsClusterArnByName(name string) (string, error) {
+	arn := ""
+	clusters, err := GetEcsClusters()
+
+	if err != nil {
+		return "", err
+	}
+
+	clustersInfo, err := GetEcsClustersInfo(clusters)
+
+	if err != nil {
+		return "", err
+	}
+
+	for _, clust := range clustersInfo {
+		if clust.Name == name {
+			arn = clust.ARN
+		}
+	}
+
+	return arn, nil
+}
+
+// GetEcsClusterNameByArn - get ECS cluster name by cluster ARN
+func GetEcsClusterNameByArn(arn string) (string, error) {
+	name := ""
+	re := regexp.MustCompile(`^arn:aws:ecs:.*:.*:cluster/(.*)$`)
+	m := re.FindStringSubmatch(arn)
+	if len(m) > 0 {
+		name = m[1]
+	} else {
+		return name, errors.New("No match")
+	}
+
+	return name, nil
 }
 
 // IsEcsClusterReady - check if cluster is ready,

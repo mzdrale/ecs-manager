@@ -244,7 +244,9 @@ ClustersMenu:
 			{{ "Agent Version:" | faint }}    {{ .AgentVersion }}
 			{{ "Docker Version:" | faint }}   {{ .DockerVersion }}
 			{{ "Running Tasks:" | faint }}    {{ .RunningTasksCount }}
-			{{ "Pending Tasks:" | faint }}    {{ .PendingTasksCount }}`,
+			{{ "Pending Tasks:" | faint }}    {{ .PendingTasksCount }}
+			{{ "Remaining Memory:" | faint }} {{ .RemainingMemory }}
+			{{ "Remaining CPU:" | faint }}    {{ .RemainingCPU }}`,
 				}
 
 				searcher := func(input string, index int) bool {
