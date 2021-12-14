@@ -111,10 +111,14 @@ func GetEcsClusterInstances(arn string) ([]string, error) {
 	}
 
 	for _, instanceArn := range result.ContainerInstanceArns {
-		re := regexp.MustCompile(`^arn:aws:ecs:.*:.*:container-instance/(.*)$`)
-		m := re.FindStringSubmatch(*instanceArn)
-		if len(m) > 0 {
-			instances = append(instances, m[1])
+		// Split ARN by "/" and use last part as instance ID
+		s := strings.Split(*instanceArn, "/")
+
+		if len(s) > 1 {
+			instance := s[len(s)-1]
+			instances = append(instances, instance)
+		} else {
+			return instances, errors.New(fmt.Sprintf("Couldn't extract instance ID from ARN: %s!\n", *instanceArn))
 		}
 	}
 
@@ -140,13 +144,13 @@ func GetEcsClusterInstancesInfo(cluster string, instances []string) ([]EcsInstan
 	}
 
 	for _, ci := range result.ContainerInstances {
-		pattern := `^arn:aws:ecs:.*:.*:container-instance/(.*)$`
-		re := regexp.MustCompile(pattern)
-		m := re.FindStringSubmatch(*ci.ContainerInstanceArn)
-		if len(m) > 0 {
-			instanceInfo.Name = m[1]
+		// Split ARN by "/" and use last part as instance ID
+		s := strings.Split(*ci.ContainerInstanceArn, "/")
+
+		if len(s) > 1 {
+			instanceInfo.Name = s[len(s)-1]
 		} else {
-			fmt.Printf("[ERROR] Instance ARN (%s) didn't match the pattern (%s)", *ci.ContainerInstanceArn, pattern)
+			return instancesInfo, errors.New(fmt.Sprintf("Couldn't extract instance ID from ARN: %s!\n", *ci.ContainerInstanceArn))
 		}
 
 		instanceInfo.ARN = *ci.ContainerInstanceArn
