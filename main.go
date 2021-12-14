@@ -35,10 +35,8 @@ var (
 
 // Config variables
 var (
-	// cTestClusters        []string
-	// cWaitForTaskClusters []string
-	cTestCluster  bool
-	aPrintVersion bool
+	aPrintVersion              bool
+	numberOfZeroTasksInstances int
 )
 
 func init() {
@@ -168,6 +166,7 @@ ClustersMenu:
 
 		testCluster := viper.GetBool(fmt.Sprintf("ecs.%s.test_cluster", clust.ARN))
 		waitForTaskCluster := viper.GetBool(fmt.Sprintf("ecs.%s.wait_for_task", clust.ARN))
+		numberOfZeroTasksInstances = 0
 
 		if testCluster {
 			fmt.Printf(p.Red("\n==============================================================\n"))
@@ -181,6 +180,7 @@ ClustersMenu:
 		}
 
 		if waitForTaskCluster {
+			numberOfZeroTasksInstances = viper.GetInt(fmt.Sprintf("ecs.%s.number_of_zero_tasks_instances", clust.ARN))
 			fmt.Printf(p.Magenta("\n==============================================================\n"))
 			fmt.Printf(p.Magenta("                     WAIT FOR TASK CLUSTER \n"))
 			fmt.Printf(p.Magenta("______________________________________________________________\n\n"))
@@ -189,7 +189,8 @@ ClustersMenu:
 			fmt.Printf(p.Magenta(" in this cluster, this tool would wait for a new instance\n"))
 			fmt.Printf(p.Magenta(" to come up and start at least one task before proceeding\n"))
 			fmt.Printf(p.Magenta(" to the next one.\n"))
-			fmt.Printf(p.Magenta("______________________________________________________________\n\n"))
+			fmt.Printf(p.Magenta(" Allowed number of instances with 0 tasks running: ", p.Yellow(numberOfZeroTasksInstances)))
+			fmt.Printf(p.Magenta("\n______________________________________________________________\n\n"))
 		}
 
 		// Select cluster action
@@ -680,15 +681,15 @@ ClustersMenu:
 					if waitForTaskCluster {
 						loop := true
 
-						s.Prefix = fmt.Sprintf("   \U0000276F %s ", p.Grey("Waiting for all instances to get in active state and start task(s)"))
+						s.Prefix = fmt.Sprintf("   \U0000276F %s ", p.Grey("Waiting for instances to get in active state and start task(s)"))
 						s.Start()
 
 						for loop {
 							sleepTime := 10 * time.Second
 
-							if aws.IsEcsClusterReady(clust.ARN, true) {
+							if aws.IsEcsClusterReady(clust.ARN, true, numberOfZeroTasksInstances) {
 								s.Stop()
-								fmt.Printf("   \U0000276F %s \n", p.Grey("Waiting for all instances to get in active state and start task(s)"))
+								fmt.Printf("   \U0000276F %s \n", p.Grey("Waiting for instances to get in active state and start task(s)"))
 								fmt.Printf("   \U0000276F %s \n", p.Grey("All instances are active and running at least one task"))
 								loop = false
 							}

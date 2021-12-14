@@ -24,6 +24,8 @@ type EcsInstance struct {
 	PendingTasksCount int64
 	RunningTasksCount int64
 	RegisteredAt      string
+	RemainingCPU      int64
+	RemainingMemory   int64
 }
 
 // EcsCluster holds information about ECS cluster
@@ -169,7 +171,7 @@ func GetEcsClusterInstancesInfo(cluster string, instances []string) ([]EcsInstan
 // IsEcsClusterReady - check if cluster is ready,
 // all instances are in ACTIVE state and if mustHaveRunningTasks is specified,
 // all instances must have at least one running task
-func IsEcsClusterReady(arn string, mustHaveRunningTasks bool) bool {
+func IsEcsClusterReady(arn string, mustHaveRunningTasks bool, numberOfZeroTasksInstances int) bool {
 	// Get cluster info
 	clusterInfo, err := GetEcsClustersInfo([]string{arn})
 	if err != nil {
@@ -184,6 +186,8 @@ func IsEcsClusterReady(arn string, mustHaveRunningTasks bool) bool {
 		os.Exit(1)
 	}
 
+	zeroTasksInstanceCnt := 0
+
 	// Get cluster instances info
 	instancesInfo, err := GetEcsClusterInstancesInfo(clusterInfo[0].Name, instances)
 	if err != nil {
@@ -196,9 +200,13 @@ func IsEcsClusterReady(arn string, mustHaveRunningTasks bool) bool {
 			return false
 		}
 
-		if mustHaveRunningTasks && inst.RunningTasksCount < 1 {
-			return false
+		if inst.RunningTasksCount < 1 {
+			zeroTasksInstanceCnt++
 		}
+	}
+
+	if zeroTasksInstanceCnt > numberOfZeroTasksInstances {
+		return false
 	}
 
 	return true
