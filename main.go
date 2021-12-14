@@ -216,8 +216,6 @@ ClustersMenu:
 
 	InstancesMenu:
 		if result == "Instances" {
-			n, _ := aws.GetEcsClusterArnByName(clust.Name)
-			fmt.Println(n)
 			// Get cluster instances
 			instances, err := aws.GetEcsClusterInstances(clust.ARN)
 
