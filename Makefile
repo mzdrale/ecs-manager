@@ -8,11 +8,13 @@ build:
 
 .PHONY: build\:macos
 build\:macos:
+	go get -d
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${BINARY}-${VERSION}-macos-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o ${BINARY}-${VERSION}-macos-arm64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
 
 .PHONY: build\:linux
 build\:linux:
+	go get -d
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BINARY}-${VERSION}-linux-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
 
 .PHONY: run
