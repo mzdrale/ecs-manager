@@ -51,8 +51,14 @@ ecs:
   ### Example
   #
   # "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-1":
+  #   # Is it test ECS cluster?
   #   test_cluster: true
+  #   # Wait for instances to start task before proceeding to the next one?
   #   wait_for_task: true
+  #   # How many instances in cluster are allowed to have 0 tasks running?
+  #   number_of_zero_task_instances: 1
+  #   # Number of instances to drain and terminate at the same time
+  #   drain_and_terminate_batch_size: 1
 
 EOF
 ```
@@ -79,6 +85,8 @@ ecs:
   "arn:aws:ecs:us-east-1:111111111111:cluster/test-ecs-3":
     test_cluster: true
     wait_for_task: true
+    number_of_zero_tasks_instances: 2
+    drain_and_terminate_batch_size: 2
 
 ```
 

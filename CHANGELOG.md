@@ -2,7 +2,7 @@
 
 This file is used to list changes made in each version of ecs-manager.
 
-## 0.2.1 (December 14 2021)
+## 0.2.1 (May 19 2022)
 
 - Get memory and CPU usage ([@mzdrale](https://gitlab.com/mzdrale))
 - Fix ECS instance ID ([@mzdrale](https://gitlab.com/mzdrale))
