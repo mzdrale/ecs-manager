@@ -1,6 +1,6 @@
 ### Global variables
 variables:
-  GO_VERSION: '1.18'
+  GO_VERSION: '1.19'
 
 ### List of stages
 stages:
@@ -43,12 +43,23 @@ stages:
       - project_cache/*.txt
 
 # Build Job - Linux (amd64)
-go_build_linux:
+go_build_linux_amd64:
   stage: go_build
   extends: .go_build
   variables:
     GOOS: "linux"
     GOARCH: "amd64"
+  only:
+    refs:
+      - tags
+
+# Build Job - Linux (arm64)
+go_build_linux_arm64:
+  stage: go_build
+  extends: .go_build
+  variables:
+    GOOS: "linux"
+    GOARCH: "arm64"
   only:
     refs:
       - tags
@@ -81,12 +92,14 @@ release_go_binaries:
   stage: release_go_binaries
   extends: .shared
   dependencies:
-    - go_build_linux
+    - go_build_linux_amd64
+    - go_build_linux_arm64
     - go_build_macos_amd64
     - go_build_macos_arm64
   script:
     # Environment variables
-    - export LINUX_BUILD_JOB_ID=$(cat project_cache/linux-amd64_job_id.txt)
+    - export LINUX_AMD64_BUILD_JOB_ID=$(cat project_cache/linux-amd64_job_id.txt)
+    - export LINUX_ARM64_BUILD_JOB_ID=$(cat project_cache/linux-arm64_job_id.txt)
     - export MACOS_AMD64_BUILD_JOB_ID=$(cat project_cache/macos-amd64_job_id.txt)
     - export MACOS_ARM64_BUILD_JOB_ID=$(cat project_cache/macos-arm64_job_id.txt)
     # Create a release
@@ -103,6 +116,10 @@ release_go_binaries:
               {
                 "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz"'",
                 "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${LINUX_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz"'"
+              },
+              {
+                "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-arm64.tar.gz"'",
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${LINUX_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-arm64.tar.gz"'"
               },
               {
                 "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-macos-amd64.tar.gz"'",
