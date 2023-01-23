@@ -115,11 +115,11 @@ release_go_binaries:
             "links": [
               {
                 "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz"'",
-                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${LINUX_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz"'"
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${LINUX_AMD64_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64.tar.gz"'"
               },
               {
                 "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-arm64.tar.gz"'",
-                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${LINUX_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-arm64.tar.gz"'"
+                "url": "'"https://gitlab.com/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}/-/jobs/${LINUX_ARM64_BUILD_JOB_ID}/artifacts/raw/target/${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-arm64.tar.gz"'"
               },
               {
                 "name": "'"${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-macos-amd64.tar.gz"'",
