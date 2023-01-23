@@ -59,6 +59,8 @@ ecs:
   #   number_of_zero_task_instances: 1
   #   # Number of instances to drain and terminate at the same time
   #   drain_and_terminate_batch_size: 1
+  #   # Delay in seconds before proceeding to the next instance
+  #   drain_and_terminate_delay: 60
 
 EOF
 ```
@@ -87,6 +89,7 @@ ecs:
     wait_for_task: true
     number_of_zero_tasks_instances: 2
     drain_and_terminate_batch_size: 2
+    drain_and_terminate_delay: 60
 
 ```
 

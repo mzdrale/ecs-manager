@@ -2,6 +2,12 @@
 
 This file is used to list changes made in each version of ecs-manager.
 
+## 0.2.2 (Jan 23 2023)
+
+- Add option to set pause when doing rolling update ([@mzdrale](https://gitlab.com/mzdrale) - [issue #14](https://gitlab.com/mzdrale/ecs-manager/-/issues/14))
+- Support Linux arm64 ([@mzdrale](https://gitlab.com/mzdrale) - [issue #15](https://gitlab.com/mzdrale/ecs-manager/-/issues/15)
+- Switch to golang 1.19 ([@mzdrale](https://gitlab.com/mzdrale)
+
 ## 0.2.1 (May 19 2022)
 
 - Get memory and CPU usage ([@mzdrale](https://gitlab.com/mzdrale))

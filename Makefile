@@ -16,6 +16,7 @@ build\:macos:
 build\:linux:
 	go get -d
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BINARY}-${VERSION}-linux-amd64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ${BINARY}-${VERSION}-linux-arm64 -ldflags="-s -w -X main.binName=${BINARY} -X main.version=${VERSION}"
 
 .PHONY: run
 run:

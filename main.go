@@ -37,6 +37,7 @@ var (
 var (
 	aPrintVersion              bool
 	numberOfZeroTasksInstances int
+	drainAndTerminateDelay     int
 )
 
 func init() {
@@ -166,6 +167,7 @@ ClustersMenu:
 
 		testCluster := viper.GetBool(fmt.Sprintf("ecs.%s.test_cluster", clust.ARN))
 		waitForTaskCluster := viper.GetBool(fmt.Sprintf("ecs.%s.wait_for_task", clust.ARN))
+		drainAndTerminateDelay := viper.GetInt(fmt.Sprintf("ecs.%s.drain_and_terminate_delay", clust.ARN))
 		numberOfZeroTasksInstances = 0
 
 		if testCluster {
@@ -679,6 +681,15 @@ ClustersMenu:
 				// Iterate through instance list and drain and terminate instances
 				for i, inst := range ecsInstancesInfo {
 					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s (%s)\n"), i+1, len(ecsInstancesInfo), inst.Name, inst.Ec2InstanceID)
+
+					// Wait before proceeding with next instance
+					if drainAndTerminateDelay > 0 {
+						s.Prefix = fmt.Sprintf("   \U0000276F %s %s %s ", p.Grey("Waiting"), p.Grey(drainAndTerminateDelay), p.Grey("seconds"))
+						s.Start()
+						time.Sleep(time.Duration(drainAndTerminateDelay) * time.Second)
+						s.Stop()
+					}
+					fmt.Println()
 
 					if waitForTaskCluster {
 						loop := true
