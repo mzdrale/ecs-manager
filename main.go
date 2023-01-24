@@ -682,15 +682,6 @@ ClustersMenu:
 				for i, inst := range ecsInstancesInfo {
 					fmt.Printf(p.Info("\U0001F5A5  [%02d/%02d] Instance %s (%s)\n"), i+1, len(ecsInstancesInfo), inst.Name, inst.Ec2InstanceID)
 
-					// Wait before proceeding with next instance
-					if drainAndTerminateDelay > 0 {
-						s.Prefix = fmt.Sprintf("   \U0000276F %s %s %s ", p.Grey("Waiting"), p.Grey(drainAndTerminateDelay), p.Grey("seconds"))
-						s.Start()
-						time.Sleep(time.Duration(drainAndTerminateDelay) * time.Second)
-						s.Stop()
-					}
-					fmt.Println()
-
 					if waitForTaskCluster {
 						loop := true
 
@@ -830,6 +821,15 @@ ClustersMenu:
 						if loop {
 							time.Sleep(sleepTime)
 						}
+					}
+					fmt.Println()
+
+					// Wait before proceeding with the next instance
+					if drainAndTerminateDelay > 0 && i < len(ecsInstancesInfo) {
+						s.Prefix = fmt.Sprintf("   \U0000276F %s %s %s ", p.Grey("Waiting"), p.White(drainAndTerminateDelay), p.Grey("seconds"))
+						s.Start()
+						time.Sleep(time.Duration(drainAndTerminateDelay) * time.Second)
+						s.Stop()
 					}
 					fmt.Println()
 
